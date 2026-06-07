@@ -15,13 +15,18 @@ Assets base descargados de itch.io para EcoBot (issue #6, fase-0).
     bleeding al escalar).
   - `Decorations.png` — árboles, tronco caído, arbustos, rocas, setas, juncos.
   - `mockups/` — imágenes de ejemplo del autor (solo referencia, no usar en build).
+- **Cobertura de la issue #15:** este pack aporta `suelo` (césped/tierra),
+  `árbol plantado` (árboles), `árbol muerto` (tronco caído / tocón) y `muro`
+  (acantilado/roca). **NO incluye `meta` ni `basura`** (son propios de EcoBot):
+  habrá que dibujarlos a mano o buscarlos aparte al hacer la #15.
 
 ## Personaje base EcoBot — `assets/sprites/ecobot/`
 - **Pack:** Pixel top down Character Pack (4 directions)
 - **Autor:** aztrakatze
 - **Fuente:** https://aztrakatze.itch.io/top-down-character-pack-4-directions
 - **Licencia:** Free to use.
-- **Formato:** GIF animado, sprites de ~29×33 px. Ver
+- **Formato:** GIF animado, sprites recortados al contenido y de **tamaño
+  variable** (~23–31 × 32–35 px según variante/frame). Ver
   `assets/sprites/ecobot/README.md` para convención de nombres, direcciones y
   el paso de conversión a spritesheet PNG (issue #14).
 - **Nota:** son personajes humanos placeholder; se reskinearán a robot (EcoBot)
