@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+*.pyo
+.env
+venv/
+.venv/
+
+# PyGame / compilados
+*.so
+*.dll
+
+# Guardado del juego
+data/save/progress.json
+
+# Assets grandes (se comparten por Drive)
+assets/sounds/*.ogg
+assets/sounds/*.wav
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
