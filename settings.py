@@ -1,0 +1,6 @@
+SCREEN_WIDTH  = 1280
+SCREEN_HEIGHT = 720
+WINDOW_TITLE  = "EcoBot"
+FPS           = 60
+COLOR_BG      = (18, 18, 24)
+COLOR_TEXT    = (235, 235, 235)
