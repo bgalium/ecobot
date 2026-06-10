@@ -1,0 +1,13 @@
+{
+  "name": "Nivel de prueba (temporal)",
+  "environmental_fact": "Nivel minimo de prueba - el diseno real del Bosque Amazonico llega con el issue #10.",
+  "max_slots": 10,
+  "available_instructions": ["MOVE", "TURN_LEFT", "TURN_RIGHT", "ACTION"],
+  "robot_start": { "col": 0, "row": 0, "direction": "RIGHT" },
+  "grid": [
+    ["FLOOR", "FLOOR", "FLOOR"],
+    ["FLOOR", "FLOOR", "FLOOR"],
+    ["FLOOR", "FLOOR", "GOAL"]
+  ],
+  "objectives": []
+}
