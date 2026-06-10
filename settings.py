@@ -18,6 +18,18 @@ FPS           = 60
 COLOR_BG      = (18, 18, 24)
 COLOR_TEXT    = (235, 235, 235)
 
+# Colores por tipo de celda (placeholders hasta integrar sprites en #11)
+TILE_COLORS = {
+    "FLOOR":     (94, 72, 52),    # tierra
+    "WALL":      (110, 110, 115), # roca
+    "DEAD_TREE": (140, 105, 60),  # tronco seco
+    "TREE":      (52, 140, 70),   # árbol plantado
+    "TRASH":     (180, 60, 170),  # basura
+    "GOAL":      (240, 200, 70),  # meta
+}
+COLOR_GRID_LINE = (40, 40, 48)
+COLOR_ROBOT     = (70, 170, 220)
+
 #Grilla 
 TILE_SIZE = 64
 ROBOT_STEP_FRAMES =12
