@@ -90,11 +90,11 @@ class Game:
                     self._load_level()
 
     def update(self) -> None:
+        # Animar siempre: el idle también se anima fuera de RUNNING
+        self.robot.update()
+
         if self.state != STATE_RUNNING:
             return
-
-        # Animar siempre
-        self.robot.update()
 
         # Esperar a que el robot termine de moverse
         if self.robot.moving:

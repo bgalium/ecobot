@@ -3,7 +3,7 @@ import pygame
 
 import settings
 from core.transforms import apply_translation
-from utils.assets import load_image
+from utils.assets import load_frames, load_image
 
 
 class Robot:
@@ -25,6 +25,19 @@ class Robot:
             "idle": load_image(settings.ROBOT_SPRITES_DIR / "idle.png", size),
             "walk": load_image(settings.ROBOT_SPRITES_DIR / "walk.png", size),
         }
+
+        # Animaciones por dirección (carpetas idle_down/, walk_right/, ...).
+        # Si una no existe se cae al sprite estático y luego al rectángulo.
+        self.animations: dict[tuple[str, str], list[pygame.Surface]] = {}
+        for anim in ("idle", "walk"):
+            for direction in settings.DIRECTIONS:
+                frames = load_frames(
+                    settings.ROBOT_SPRITES_DIR / f"{anim}_{direction.lower()}", size
+                )
+                if frames:
+                    self.animations[(anim, direction)] = frames
+        self.frame_index: int = 0
+        self.frame_timer: int = 0
 
     # Movimiento
 
@@ -82,7 +95,12 @@ class Robot:
     
 
     def update(self) -> None:
-        """Interpola pixel_x/y hacia target_x/y para animar el movimiento."""
+        """Avanza el ciclo de animación e interpola pixel_x/y hacia target_x/y."""
+        self.frame_timer += 1
+        if self.frame_timer >= settings.ANIMATION_FRAME_TICKS:
+            self.frame_timer = 0
+            self.frame_index += 1
+
         if not self.moving:
             return
         speed = settings.TILE_SIZE / settings.ROBOT_STEP_FRAMES
@@ -98,14 +116,21 @@ class Robot:
             self.moving = False
 
     def draw(self, surface: pygame.Surface, origin: tuple[int, int]) -> None:
-        """Dibuja al robot: sprite si existe (walk al moverse), rectángulo si no."""
+        """Dibuja al robot: animación de su dirección > sprite estático > rectángulo."""
         origin_x, origin_y = origin
+        pos = (origin_x + int(self.pixel_x), origin_y + int(self.pixel_y))
+
+        anim = "walk" if self.moving else "idle"
+        frames = self.animations.get((anim, self.direction))
+        if frames:
+            surface.blit(frames[self.frame_index % len(frames)], pos)
+            return
 
         sprite = self.sprites["walk"] if self.moving else self.sprites["idle"]
         if sprite is None:
             sprite = self.sprites["idle"] or self.sprites["walk"]
         if sprite is not None:
-            surface.blit(sprite, (origin_x + int(self.pixel_x), origin_y + int(self.pixel_y)))
+            surface.blit(sprite, pos)
             return
 
         margin = settings.TILE_SIZE // 8
