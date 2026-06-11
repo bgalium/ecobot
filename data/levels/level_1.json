@@ -1,13 +1,17 @@
 {
-  "name": "Nivel de prueba (temporal)",
-  "environmental_fact": "Nivel minimo de prueba - el diseno real del Bosque Amazonico llega con el issue #10.",
+  "name": "Bosque Amazónico",
+  "environmental_fact": "La Amazonía pierde un área equivalente a un campo de fútbol cada minuto.",
   "max_slots": 10,
   "available_instructions": ["MOVE", "TURN_LEFT", "TURN_RIGHT", "ACTION"],
-  "robot_start": { "col": 0, "row": 0, "direction": "RIGHT" },
-  "grid": [
-    ["FLOOR", "FLOOR", "FLOOR"],
-    ["FLOOR", "FLOOR", "FLOOR"],
-    ["FLOOR", "FLOOR", "GOAL"]
+  "robot_start": { "col": 0, "row": 3, "direction": "RIGHT" },
+  "objectives": [
+    { "action": "PLANT", "col": 2, "row": 2 },
+    { "action": "PLANT", "col": 3, "row": 2 }
   ],
-  "objectives": []
+  "grid": [
+    ["FLOOR", "FLOOR", "FLOOR",     "FLOOR",     "FLOOR"],
+    ["FLOOR", "FLOOR", "FLOOR",     "FLOOR",     "FLOOR"],
+    ["FLOOR", "WALL",  "DEAD_TREE", "DEAD_TREE", "FLOOR"],
+    ["FLOOR", "FLOOR", "FLOOR",     "FLOOR",     "GOAL"]
+  ]
 }
