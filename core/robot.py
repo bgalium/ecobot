@@ -2,7 +2,8 @@
 import pygame
 
 import settings
-from utils.assets import load_image
+from core.transforms import apply_translation
+from utils.assets import load_frames, load_image
 
 
 class Robot:
@@ -25,18 +26,30 @@ class Robot:
             "walk": load_image(settings.ROBOT_SPRITES_DIR / "walk.png", size),
         }
 
+        # Animaciones por dirección (carpetas idle_down/, walk_right/, ...).
+        # Si una no existe se cae al sprite estático y luego al rectángulo.
+        self.animations: dict[tuple[str, str], list[pygame.Surface]] = {}
+        for anim in ("idle", "walk"):
+            for direction in settings.DIRECTIONS:
+                frames = load_frames(
+                    settings.ROBOT_SPRITES_DIR / f"{anim}_{direction.lower()}", size
+                )
+                if frames:
+                    self.animations[(anim, direction)] = frames
+        self.frame_index: int = 0
+        self.frame_timer: int = 0
+
     # Movimiento
 
     def move_forward(self, level) -> str:
-        """Avanza una celda en la dirección actual usando traslación.
+        """Avanza una celda en la dirección actual usando traslación homogénea.
 
-        Aplica T(dx, dy) sobre el vector posición [col, row, 1]:
-        resultado = [col+dx, row+dy, 1] 
-        Retorna "OK", "WALL" o "FELL"
+        La posición es el vector [col, row, 1]ᵀ y la celda destino se obtiene
+        multiplicándolo por la matriz de traslación 3×3 T(dx, dy) con NumPy
+        (Unidad 4: transformaciones afines). Retorna "OK", "WALL" o "FELL".
         """
         dx, dy = settings.DIRECTIONS[self.direction]
-        nueva_col = self.col + dx
-        nueva_row = self.row + dy
+        nueva_col, nueva_row = apply_translation(self.col, self.row, dx, dy)
         if not (0 <= nueva_col < level.cols and 0 <= nueva_row < level.rows):
             return "FELL"
         if not level.is_walkable(nueva_col, nueva_row):
@@ -82,7 +95,12 @@ class Robot:
     
 
     def update(self) -> None:
-        """Interpola pixel_x/y hacia target_x/y para animar el movimiento."""
+        """Avanza el ciclo de animación e interpola pixel_x/y hacia target_x/y."""
+        self.frame_timer += 1
+        if self.frame_timer >= settings.ANIMATION_FRAME_TICKS:
+            self.frame_timer = 0
+            self.frame_index += 1
+
         if not self.moving:
             return
         speed = settings.TILE_SIZE / settings.ROBOT_STEP_FRAMES
@@ -98,14 +116,21 @@ class Robot:
             self.moving = False
 
     def draw(self, surface: pygame.Surface, origin: tuple[int, int]) -> None:
-        """Dibuja al robot: sprite si existe (walk al moverse), rectángulo si no."""
+        """Dibuja al robot: animación de su dirección > sprite estático > rectángulo."""
         origin_x, origin_y = origin
+        pos = (origin_x + int(self.pixel_x), origin_y + int(self.pixel_y))
+
+        anim = "walk" if self.moving else "idle"
+        frames = self.animations.get((anim, self.direction))
+        if frames:
+            surface.blit(frames[self.frame_index % len(frames)], pos)
+            return
 
         sprite = self.sprites["walk"] if self.moving else self.sprites["idle"]
         if sprite is None:
             sprite = self.sprites["idle"] or self.sprites["walk"]
         if sprite is not None:
-            surface.blit(sprite, (origin_x + int(self.pixel_x), origin_y + int(self.pixel_y)))
+            surface.blit(sprite, pos)
             return
 
         margin = settings.TILE_SIZE // 8

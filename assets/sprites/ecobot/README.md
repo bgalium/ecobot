@@ -12,10 +12,11 @@ Son placeholders humanos: se **reskinean a robot** (EcoBot) en la issue #14.
 ## Convención de nombres
 Archivos `N.M<anim>.gif`:
 - **N** = variante de personaje (1–6).
-- **M** = dirección:
+- **M** = dirección (⚠️ corregido tras verificar visualmente la variante 3 —
+  la versión anterior de esta tabla tenía izquierda/derecha invertidas):
   - `1` = abajo (frente)
-  - `2` = izquierda
-  - `3` = derecha
+  - `2` = derecha
+  - `3` = izquierda
   - `4` = arriba (espalda)
 
 Las variantes **3 y 6** traen las 4 direcciones; el resto trae 3 (les falta

@@ -45,8 +45,9 @@ PNGs de **64×64 px** que el juego carga en `core/level.py` y `core/robot.py`
 | `tiles/tree.png` | Decorations.png (aamatniekss) | árbol sobre césped |
 | `tiles/trash.png` | **elaboración propia** | bolsa de basura dibujada, sobre césped del pack |
 | `tiles/goal.png` | **elaboración propia** | bandera a cuadros dibujada, sobre césped del pack |
-| `robot/idle.png` | GIF idle 1.1 (aztrakatze) | frame sobre lienzo 64×64 transparente |
-| `robot/walk.png` | GIF run 1.1 (aztrakatze) | frame sobre lienzo 64×64 transparente |
+| `robot/idle.png`, `walk.png` | GIFs variante 3 (aztrakatze) | primer frame, fallback estático 64×64 |
+| `robot/idle_{down,left,right,up}/` | GIFs `3.M idle` (aztrakatze) | 4 frames/dirección: extraídos con `-coalesce`, lienzo normalizado 32×36 y escalados a 64×64 |
+| `robot/walk_{down,left,right,up}/` | GIFs `3.M run` (aztrakatze) | 6 frames/dirección: ídem |
 
 Las licencias de los packs originales (uso libre, modificación permitida) cubren
 estos derivados.

@@ -34,9 +34,10 @@ TILE_COLORS = {
 COLOR_GRID_LINE = (40, 40, 48)
 COLOR_ROBOT     = (70, 170, 220)
 
-#Grilla 
+#Grilla
 TILE_SIZE = 64
 ROBOT_STEP_FRAMES =12
+ANIMATION_FRAME_TICKS = 8  # frames de juego por cada frame de animación (60/8 ≈ 7.5 fps)
 
 # Direcciones del robot
 DIRECTIONS = {
