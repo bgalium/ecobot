@@ -8,6 +8,10 @@ DATA_DIR   = BASE_DIR / "data"
 LEVELS_DIR = DATA_DIR / "levels"
 SAVE_PATH  = DATA_DIR / "save" / "progress.json"
 
+# Sprites del juego (issue #11) — si falta un PNG se usa el color de respaldo
+TILES_SPRITES_DIR = ASSETS_DIR / "sprites" / "tiles"
+ROBOT_SPRITES_DIR = ASSETS_DIR / "sprites" / "robot"
+
 # --- Ventana
 SCREEN_WIDTH  = 1280
 SCREEN_HEIGHT = 720

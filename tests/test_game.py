@@ -11,7 +11,12 @@ from core.game import Game
 
 
 @pytest.fixture
-def game():
+def game(tmp_path, monkeypatch):
+    # Sin sprites: estos tests verifican la lógica y el dibujado de respaldo
+    vacia = tmp_path / "sin_assets"
+    vacia.mkdir()
+    monkeypatch.setattr(settings, "TILES_SPRITES_DIR", vacia)
+    monkeypatch.setattr(settings, "ROBOT_SPRITES_DIR", vacia)
     pygame.init()
     screen = pygame.display.set_mode((settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT))
     yield Game(screen)

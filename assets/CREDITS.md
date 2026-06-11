@@ -31,3 +31,22 @@ Assets base descargados de itch.io para EcoBot (issue #6, fase-0).
   el paso de conversión a spritesheet PNG (issue #14).
 - **Nota:** son personajes humanos placeholder; se reskinearán a robot (EcoBot)
   en la issue #14.
+
+## Sprites del juego (derivados) — `assets/sprites/tiles/` y `assets/sprites/robot/` (issue #11)
+
+PNGs de **64×64 px** que el juego carga en `core/level.py` y `core/robot.py`
+(con fallback a color si faltan). Derivados de los packs de arriba:
+
+| Archivo | Origen | Derivación |
+|---|---|---|
+| `tiles/floor.png` | Tileset.png (aamatniekss) | tile de césped escalado ×4 |
+| `tiles/wall.png` | Decorations.png (aamatniekss) | pilas de roca sobre césped |
+| `tiles/dead_tree.png` | Decorations.png (aamatniekss) | tronco caído sobre césped |
+| `tiles/tree.png` | Decorations.png (aamatniekss) | árbol sobre césped |
+| `tiles/trash.png` | **elaboración propia** | bolsa de basura dibujada, sobre césped del pack |
+| `tiles/goal.png` | **elaboración propia** | bandera a cuadros dibujada, sobre césped del pack |
+| `robot/idle.png` | GIF idle 1.1 (aztrakatze) | frame sobre lienzo 64×64 transparente |
+| `robot/walk.png` | GIF run 1.1 (aztrakatze) | frame sobre lienzo 64×64 transparente |
+
+Las licencias de los packs originales (uso libre, modificación permitida) cubren
+estos derivados.

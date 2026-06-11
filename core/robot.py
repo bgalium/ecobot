@@ -2,6 +2,7 @@
 import pygame
 
 import settings
+from utils.assets import load_image
 
 
 class Robot:
@@ -16,6 +17,13 @@ class Robot:
         self.target_x: float = self.pixel_x
         self.target_y: float = self.pixel_y
         self.moving: bool = False
+
+        # Sprites (issue #11): si falta el PNG se dibuja el rectángulo de respaldo
+        size = (settings.TILE_SIZE, settings.TILE_SIZE)
+        self.sprites: dict[str, pygame.Surface | None] = {
+            "idle": load_image(settings.ROBOT_SPRITES_DIR / "idle.png", size),
+            "walk": load_image(settings.ROBOT_SPRITES_DIR / "walk.png", size),
+        }
 
     # Movimiento
 
@@ -90,8 +98,16 @@ class Robot:
             self.moving = False
 
     def draw(self, surface: pygame.Surface, origin: tuple[int, int]) -> None:
-        """Dibuja al robot en su posición visual actual."""
+        """Dibuja al robot: sprite si existe (walk al moverse), rectángulo si no."""
         origin_x, origin_y = origin
+
+        sprite = self.sprites["walk"] if self.moving else self.sprites["idle"]
+        if sprite is None:
+            sprite = self.sprites["idle"] or self.sprites["walk"]
+        if sprite is not None:
+            surface.blit(sprite, (origin_x + int(self.pixel_x), origin_y + int(self.pixel_y)))
+            return
+
         margin = settings.TILE_SIZE // 8
         rect = pygame.Rect(
             origin_x + int(self.pixel_x) + margin,

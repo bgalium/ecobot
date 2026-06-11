@@ -9,6 +9,15 @@ from core.level import Level
 from core.robot import Robot
 
 
+@pytest.fixture(autouse=True)
+def sin_sprites(tmp_path, monkeypatch):
+    """Estos tests verifican el dibujado de RESPALDO (colores): sin PNGs."""
+    vacia = tmp_path / "sin_assets"
+    vacia.mkdir()
+    monkeypatch.setattr(settings, "TILES_SPRITES_DIR", vacia)
+    monkeypatch.setattr(settings, "ROBOT_SPRITES_DIR", vacia)
+
+
 @pytest.fixture
 def level(tmp_path):
     data = {
