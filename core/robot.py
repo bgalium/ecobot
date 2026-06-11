@@ -2,6 +2,7 @@
 import pygame
 
 import settings
+from core.transforms import apply_translation
 from utils.assets import load_image
 
 
@@ -28,15 +29,14 @@ class Robot:
     # Movimiento
 
     def move_forward(self, level) -> str:
-        """Avanza una celda en la dirección actual usando traslación.
+        """Avanza una celda en la dirección actual usando traslación homogénea.
 
-        Aplica T(dx, dy) sobre el vector posición [col, row, 1]:
-        resultado = [col+dx, row+dy, 1] 
-        Retorna "OK", "WALL" o "FELL"
+        La posición es el vector [col, row, 1]ᵀ y la celda destino se obtiene
+        multiplicándolo por la matriz de traslación 3×3 T(dx, dy) con NumPy
+        (Unidad 4: transformaciones afines). Retorna "OK", "WALL" o "FELL".
         """
         dx, dy = settings.DIRECTIONS[self.direction]
-        nueva_col = self.col + dx
-        nueva_row = self.row + dy
+        nueva_col, nueva_row = apply_translation(self.col, self.row, dx, dy)
         if not (0 <= nueva_col < level.cols and 0 <= nueva_row < level.rows):
             return "FELL"
         if not level.is_walkable(nueva_col, nueva_row):

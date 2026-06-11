@@ -58,3 +58,51 @@ def test_run_termina_si_hay_evento_quit(game):
     pygame.event.post(pygame.event.Event(pygame.QUIT))
     game.run()  # si no consume el QUIT, esto no retorna nunca
     assert game.running is False
+
+
+def _ejecutar_hasta_terminar(game, max_frames=2000):
+    """Presiona ESPACIO y simula frames hasta salir de RUNNING."""
+    from core.game import STATE_RUNNING
+    pygame.event.post(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_SPACE))
+    game.handle_events()
+    for _ in range(max_frames):
+        game.update()
+        if game.state != STATE_RUNNING:
+            break
+    return game.state
+
+
+def test_la_secuencia_hardcodeada_gana_el_nivel_real(game):
+    """Integración con el level_1.json real: debe plantar todo y llegar a la meta."""
+    from core.game import STATE_VICTORY
+    estado = _ejecutar_hasta_terminar(game)
+    assert estado == STATE_VICTORY
+    assert game.level.get_cell(game.robot.col, game.robot.row) == "GOAL"
+
+
+def test_los_objetivos_se_cumplen_de_verdad(game):
+    """Tras ganar, las celdas de los objetivos deben haber cambiado a TREE/FLOOR."""
+    _ejecutar_hasta_terminar(game)
+    for obj in game.level.objectives:
+        celda = game.level.get_cell(obj["col"], obj["row"])
+        if obj["type"] == "PLANT_TREE":
+            assert celda == "TREE"
+        elif obj["type"] == "COLLECT_TRASH":
+            assert celda == "FLOOR"
+
+
+def test_no_se_gana_ignorando_los_objetivos(game):
+    """Ir directo a la meta sin plantar debe ser derrota, no victoria."""
+    from core.game import STATE_FAILURE
+    from core.interpreter import Interpreter
+    game.interpreter = Interpreter(["MOVE", "MOVE", "MOVE", "MOVE"])  # directo al GOAL
+    estado = _ejecutar_hasta_terminar(game)
+    assert estado == STATE_FAILURE
+
+
+def test_al_ganar_el_robot_termino_su_animacion(game):
+    """La victoria se evalúa con el robot quieto y centrado en su celda."""
+    _ejecutar_hasta_terminar(game)
+    assert game.robot.moving is False
+    assert game.robot.pixel_x == game.robot.target_x
+    assert game.robot.pixel_y == game.robot.target_y
