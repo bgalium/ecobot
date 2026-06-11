@@ -1,4 +1,4 @@
-"""Tests de core/transforms.py — traslación con coordenadas homogéneas (U4)."""
+"""Tests de core/transforms.py — traslación con coordenadas homogéneas."""
 import numpy as np
 
 from core.transforms import apply_translation, translation_matrix

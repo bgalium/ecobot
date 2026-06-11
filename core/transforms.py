@@ -1,4 +1,4 @@
-"""Transformaciones 2D con coordenadas homogéneas (NumPy) — Unidad 4 del curso.
+"""Transformaciones 2D con coordenadas homogéneas (NumPy).
 
 Un punto de la grilla (col, row) se representa como vector homogéneo
 [col, row, 1]ᵀ. Trasladarlo es multiplicarlo por la matriz T(dx, dy).
