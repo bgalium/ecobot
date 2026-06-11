@@ -32,13 +32,23 @@ class Level:
         self.cols: int = len(self.grid[0])
 
     def is_walkable(self, col: int, row: int) -> bool:
-        """Indica si el robot puede pararse en la celda (col, row)."""
+        """Indica si el robot puede pararse en la celda (col, row)"""
         if not (0 <= col < self.cols and 0 <= row < self.rows):
             return False
         return self.grid[row][col] in WALKABLE_TILES
 
+    def get_cell(self, col: int, row: int) -> str | None:
+        """Retorna el tipo de celda en (col, row), o None si está fuera de límites"""
+        if not (0 <= col < self.cols and 0 <= row < self.rows):
+            return None
+        return self.grid[row][col]
+
+    def set_cell(self, col: int, row: int, tile_type: str) -> None:
+        """Cambia el tipo de celda en (col, row)."""
+        self.grid[row][col] = tile_type
+
     def draw(self, surface: pygame.Surface, origin: tuple[int, int]) -> None:
-        """Dibuja la grilla celda por celda con un color por tipo de celda."""
+        """Dibuja la grilla celda por celda con un color por tipo de celda"""
         origin_x, origin_y = origin
         for row in range(self.rows):
             for col in range(self.cols):
