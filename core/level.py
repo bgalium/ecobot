@@ -5,6 +5,7 @@ from pathlib import Path
 import pygame
 
 import settings
+from utils.assets import load_image
 
 # Tipos de celda sobre los que el robot puede pararse
 WALKABLE_TILES = {"FLOOR", "GOAL"}
@@ -31,6 +32,14 @@ class Level:
         self.rows: int = len(self.grid)
         self.cols: int = len(self.grid[0])
 
+        # Imágenes de tiles (issue #11): si falta el PNG se usa el color
+        size = (settings.TILE_SIZE, settings.TILE_SIZE)
+        self.tile_images: dict[str, pygame.Surface] = {}
+        for tile_type in settings.TILE_COLORS:
+            img = load_image(settings.TILES_SPRITES_DIR / f"{tile_type.lower()}.png", size)
+            if img is not None:
+                self.tile_images[tile_type] = img
+
     def is_walkable(self, col: int, row: int) -> bool:
         """Indica si el robot puede pararse en la celda (col, row)"""
         if not (0 <= col < self.cols and 0 <= row < self.rows):
@@ -48,17 +57,21 @@ class Level:
         self.grid[row][col] = tile_type
 
     def draw(self, surface: pygame.Surface, origin: tuple[int, int]) -> None:
-        """Dibuja la grilla celda por celda con un color por tipo de celda"""
+        """Dibuja la grilla: imagen del tile si existe, color de respaldo si no."""
         origin_x, origin_y = origin
         for row in range(self.rows):
             for col in range(self.cols):
                 tile_type = self.grid[row][col]
-                color = settings.TILE_COLORS.get(tile_type, settings.COLOR_BG)
                 rect = pygame.Rect(
                     origin_x + col * settings.TILE_SIZE,
                     origin_y + row * settings.TILE_SIZE,
                     settings.TILE_SIZE,
                     settings.TILE_SIZE,
                 )
-                pygame.draw.rect(surface, color, rect)
+                image = self.tile_images.get(tile_type)
+                if image is not None:
+                    surface.blit(image, rect)
+                else:
+                    color = settings.TILE_COLORS.get(tile_type, settings.COLOR_BG)
+                    pygame.draw.rect(surface, color, rect)
                 pygame.draw.rect(surface, settings.COLOR_GRID_LINE, rect, width=1)
