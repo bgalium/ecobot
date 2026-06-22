@@ -5,8 +5,10 @@ import settings
 from core.interpreter import Interpreter
 from core.level import Level
 from core.robot import Robot
+from ui.intro_screen import IntroScreen
 
 # ── Estados del juego ────────────────────────────────────────────────────────
+STATE_INTRO   = "INTRO"     # Mostrando dato ambiental antes del nivel
 STATE_IDLE    = "IDLE"      # Esperando que el jugador pulse ESPACIO
 STATE_RUNNING = "RUNNING"   # Ejecutando instrucciones
 STATE_VICTORY = "VICTORY"   # Robot en GOAL y todos los objetivos cumplidos
@@ -60,7 +62,8 @@ class Game:
             (settings.SCREEN_HEIGHT - self.level.rows * settings.TILE_SIZE) // 2,
         )
         self.interpreter = Interpreter(HARDCODED_INSTRUCTIONS)
-        self.state = STATE_IDLE
+        self.intro_screen = IntroScreen()
+        self.state = STATE_INTRO
 
     def run(self) -> None:
         while self.running:
@@ -80,7 +83,9 @@ class Game:
                     self.running = False
 
                 elif event.key == pygame.K_SPACE:
-                    if self.state == STATE_IDLE:
+                    if self.state == STATE_INTRO:
+                        self.state = STATE_IDLE
+                    elif self.state == STATE_IDLE:
                         self.interpreter.start()
                         self.state = STATE_RUNNING
                     elif self.state in (STATE_VICTORY, STATE_FAILURE):
@@ -145,7 +150,10 @@ class Game:
         self.level.draw(self.screen, self.grid_origin)
         self.robot.draw(self.screen, self.grid_origin)
 
-        if self.state == STATE_VICTORY:
+        if self.state == STATE_INTRO:
+            self.intro_screen.draw(self.screen, self.level.name,
+                                   self.level.environmental_fact)
+        elif self.state == STATE_VICTORY:
             self._draw_overlay("VICTORIA", "Presiona ESPACIO o R para reiniciar",
                                (50, 220, 80))
         elif self.state == STATE_FAILURE:

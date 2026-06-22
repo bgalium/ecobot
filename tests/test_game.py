@@ -44,6 +44,9 @@ def test_cerrar_la_ventana_detiene_el_juego(game):
 
 
 def test_draw_pinta_el_nivel_y_el_robot(game):
+    # Avanzar más allá de la pantalla de introducción
+    pygame.event.post(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_SPACE))
+    game.handle_events()
     game.draw()
     half = settings.TILE_SIZE // 2
     ox, oy = game.grid_origin
@@ -61,8 +64,13 @@ def test_run_termina_si_hay_evento_quit(game):
 
 
 def _ejecutar_hasta_terminar(game, max_frames=2000):
-    """Presiona ESPACIO y simula frames hasta salir de RUNNING."""
-    from core.game import STATE_RUNNING
+    """Presiona ESPACIO para pasar INTRO e IDLE, y simula frames hasta terminar."""
+    from core.game import STATE_INTRO, STATE_RUNNING
+    # Salir del estado INTRO si estamos allí
+    if game.state == STATE_INTRO:
+        pygame.event.post(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_SPACE))
+        game.handle_events()
+    # Iniciar el nivel
     pygame.event.post(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_SPACE))
     game.handle_events()
     for _ in range(max_frames):
