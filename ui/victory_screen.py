@@ -1,4 +1,6 @@
 """Pantalla de victoria: estrellas, dato ambiental y botones."""
+import math
+
 import pygame
 
 import settings
@@ -8,7 +10,6 @@ class VictoryScreen:
     def __init__(self) -> None:
         pygame.font.init()
         self._font_title  = pygame.font.SysFont(None, 72, bold=True)
-        self._font_stars  = pygame.font.SysFont(None, 64)
         self._font_fact   = pygame.font.SysFont(None, 36)
         self._font_info   = pygame.font.SysFont(None, 30)
         self._font_button = pygame.font.SysFont(None, 40, bold=True)
@@ -39,10 +40,8 @@ class VictoryScreen:
         name_surf = self._font_info.render(level_name, True, (220, 220, 220))
         screen.blit(name_surf, name_surf.get_rect(center=(w // 2, h // 2 - 70)))
 
-        stars = self._calculate_stars(steps, max_slots)
-        stars_text = "★" * stars + "☆" * (3 - stars)
-        stars_surf = self._font_stars.render(stars_text, True, (255, 220, 50))
-        screen.blit(stars_surf, stars_surf.get_rect(center=(w // 2, h // 2 - 5)))
+        stars_count = self._calculate_stars(steps, max_slots)
+        self._draw_stars(screen, w // 2, h // 2 - 5, stars_count)
 
         info_surf = self._font_info.render(
             f"Pasos usados: {steps}  /  {max_slots}", True, (180, 180, 180)
@@ -67,6 +66,31 @@ class VictoryScreen:
             label_surf = self._font_button.render(label, True, color)
             lx = bx + i * (btn_w + gap)
             screen.blit(label_surf, label_surf.get_rect(center=(lx + btn_w // 2, by)))
+
+    # ------------------------------------------------------------------
+    # Estrellas dibujadas con pygame.draw (evita Unicode mal renderizado)
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _star_points(cx: float, cy: float, outer_r: float) -> list[tuple[float, float]]:
+        inner_r = outer_r * 0.4
+        pts: list[tuple[float, float]] = []
+        for i in range(10):
+            angle = math.radians(-90 + i * 36)
+            r = outer_r if i % 2 == 0 else inner_r
+            pts.append((cx + r * math.cos(angle), cy + r * math.sin(angle)))
+        return pts
+
+    def _draw_stars(self, screen: pygame.Surface, cx: int, cy: int,
+                    count: int) -> None:
+        r = 22
+        gap = r * 3
+        start_x = cx - gap
+        for i in range(3):
+            x = start_x + i * gap
+            color = (255, 220, 50) if i < count else (80, 80, 80)
+            pts = self._star_points(x, cy, r)
+            pygame.draw.polygon(screen, color, pts)
 
     @staticmethod
     def _calculate_stars(steps: int, max_slots: int) -> int:
