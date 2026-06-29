@@ -10,9 +10,9 @@ from ui.intro_screen import IntroScreen
 # ── Estados del juego ────────────────────────────────────────────────────────
 STATE_INTRO         = "INTRO"          # Mostrando dato ambiental antes del nivel
 STATE_PLANNING      = "PLANNING"       # El jugador arma la ruta (acepta flechas)
-STATE_RUNNING       = "RUNNING"        # El robot ejecuta la secuencia. Timer activo.
-STATE_ACTION_PROMPT = "ACTION_PROMPT"  # Sub-estado de RUNNING: pausa junto a un
-                                       # objetivo, espera la tecla E
+STATE_RUNNING       = "RUNNING"        # El robot ejecuta la secuencia paso a paso
+STATE_ACTION_PROMPT = "ACTION_PROMPT"  # Pausa la ejecución junto a un objetivo y
+                                       # espera la tecla E (QTE, #43)
 STATE_VICTORY       = "VICTORY"        # Robot en GOAL y todos los objetivos cumplidos
 STATE_FAILURE       = "FAILURE"        # Robot chocó o cayó
 
@@ -128,7 +128,6 @@ class Game:
 
         El control de velocidad (#45) se enganchará aquí.
         """
-        pass
 
     def _handle_action_prompt_key(self, event: pygame.event.Event) -> None:
         """La tecla E resuelve la ventana de acción y reanuda la ejecución."""
@@ -170,7 +169,7 @@ class Game:
         self.state = STATE_RUNNING
 
     def update(self) -> None:
-        # Animar siempre: el idle también se anima fuera de RUNNING
+        # Animar siempre: la animación idle también corre fuera de RUNNING
         self.robot.update()
 
         # ACTION_PROMPT pausa la ejecución hasta que el jugador pulse E.
@@ -185,8 +184,10 @@ class Game:
             return
 
         # Abrir la ventana de acción si el robot quedó junto a un objetivo (#43).
-        # No se reabre en la misma pose donde ya se resolvió un prompt, pero sí
-        # tras girar (otra dirección = otro objetivo de frente) o avanzar.
+        # Disparo POSICIONAL: depende solo de la pose del robot, no de si la
+        # próxima instrucción del intérprete es ACTION (la detección la implementa
+        # #43). No se reabre en la misma pose donde ya se resolvió un prompt, pero
+        # sí tras girar (otra dirección = otro objetivo de frente) o avanzar.
         pose = (self.robot.col, self.robot.row, self.robot.direction)
         if pose != self._last_prompt_state and self._should_trigger_action_prompt():
             self.state = STATE_ACTION_PROMPT

@@ -128,6 +128,7 @@ def test_update_entra_a_action_prompt_cuando_se_dispara(game, monkeypatch):
     monkeypatch.setattr(game, "_should_trigger_action_prompt", lambda: True)
     game.update()
     assert game.state == STATE_ACTION_PROMPT
+    game.draw()  # smoke: ejercita la rama de dibujo de ACTION_PROMPT
 
 
 def _abrir_y_resolver_prompt(game):
@@ -145,17 +146,17 @@ def _abrir_y_resolver_prompt(game):
 
 def test_resolver_el_prompt_no_lo_reabre_en_la_misma_pose(game, monkeypatch):
     """Tras resolver con E, update() no reabre el prompt si el robot no cambió de pose."""
-    from core.game import STATE_ACTION_PROMPT, STATE_RUNNING
+    from core.game import STATE_RUNNING
     monkeypatch.setattr(game, "_should_trigger_action_prompt", lambda: True)
     _abrir_y_resolver_prompt(game)
     game.robot.moving = False
     game.update()
-    assert game.state != STATE_ACTION_PROMPT
+    assert game.state == STATE_RUNNING
 
 
 def test_girar_en_la_misma_celda_reabre_el_prompt(game, monkeypatch):
     """Si el robot gira hacia otro objetivo sin moverse, se abre un nuevo prompt."""
-    from core.game import STATE_ACTION_PROMPT, STATE_RUNNING
+    from core.game import STATE_ACTION_PROMPT
     monkeypatch.setattr(game, "_should_trigger_action_prompt", lambda: True)
     _abrir_y_resolver_prompt(game)
     # Otra dirección en la misma celda = otro objetivo de frente → nuevo prompt.
@@ -163,6 +164,29 @@ def test_girar_en_la_misma_celda_reabre_el_prompt(game, monkeypatch):
     game.robot.moving = False
     game.update()
     assert game.state == STATE_ACTION_PROMPT
+
+
+def test_avanzar_de_celda_reabre_el_prompt(game, monkeypatch):
+    """Si el robot avanza a otra celda, el guard de pose permite un nuevo prompt."""
+    from core.game import STATE_ACTION_PROMPT
+    monkeypatch.setattr(game, "_should_trigger_action_prompt", lambda: True)
+    _abrir_y_resolver_prompt(game)
+    # Cambiar de celda (no solo de dirección) también re-arma el prompt.
+    game.robot.col += 1
+    game.robot.moving = False
+    game.update()
+    assert game.state == STATE_ACTION_PROMPT
+
+
+def test_en_action_prompt_una_tecla_no_e_no_reanuda(game):
+    """En ACTION_PROMPT, teclas distintas de E (ESPACIO, flechas) no reanudan."""
+    from core.game import STATE_ACTION_PROMPT
+    game.interpreter.start()
+    for tecla in (pygame.K_SPACE, pygame.K_UP, pygame.K_LEFT):
+        game.state = STATE_ACTION_PROMPT
+        pygame.event.post(pygame.event.Event(pygame.KEYDOWN, key=tecla))
+        game.handle_events()
+        assert game.state == STATE_ACTION_PROMPT
 
 
 def test_la_tecla_e_se_ignora_fuera_de_action_prompt(game):
