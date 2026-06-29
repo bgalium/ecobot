@@ -63,6 +63,79 @@ def test_run_termina_si_hay_evento_quit(game):
     assert game.running is False
 
 
+# ── Máquina de estados (#50) ─────────────────────────────────────────────────
+
+def test_arranca_en_intro_y_espacio_pasa_a_planning(game):
+    """El nivel arranca en INTRO; ESPACIO lleva a PLANNING (antes IDLE)."""
+    from core.game import STATE_INTRO, STATE_PLANNING
+    assert game.state == STATE_INTRO
+    pygame.event.post(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_SPACE))
+    game.handle_events()
+    assert game.state == STATE_PLANNING
+
+
+def test_desde_planning_espacio_inicia_la_ejecucion(game):
+    """En PLANNING, ESPACIO arranca el intérprete y pasa a RUNNING."""
+    from core.game import STATE_PLANNING, STATE_RUNNING
+    game.state = STATE_PLANNING
+    pygame.event.post(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_SPACE))
+    game.handle_events()
+    assert game.state == STATE_RUNNING
+    assert game.interpreter.running is True
+
+
+def test_en_planning_las_flechas_no_rompen_ni_inician(game):
+    """PLANNING acepta input de flechas sin cambiar de estado ni fallar."""
+    from core.game import STATE_PLANNING
+    game.state = STATE_PLANNING
+    for tecla in (pygame.K_UP, pygame.K_DOWN, pygame.K_LEFT, pygame.K_RIGHT):
+        pygame.event.post(pygame.event.Event(pygame.KEYDOWN, key=tecla))
+        game.handle_events()
+    assert game.state == STATE_PLANNING
+    assert game.running is True
+
+
+def test_en_running_las_flechas_se_ignoran(game):
+    """Durante RUNNING no se acepta input de ruta: las flechas no hacen nada."""
+    from core.game import STATE_RUNNING
+    game.state = STATE_RUNNING
+    pygame.event.post(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_LEFT))
+    game.handle_events()
+    assert game.state == STATE_RUNNING
+
+
+def test_action_prompt_se_resuelve_con_la_tecla_e(game):
+    """En ACTION_PROMPT la tecla E resuelve la ventana y vuelve a RUNNING."""
+    from core.game import STATE_ACTION_PROMPT, STATE_RUNNING
+    game.state = STATE_ACTION_PROMPT
+    pygame.event.post(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_e))
+    game.handle_events()
+    assert game.state == STATE_RUNNING
+
+
+def test_en_action_prompt_el_interprete_no_avanza(game):
+    """Mientras se espera la tecla E, la ejecución queda pausada."""
+    from core.game import STATE_ACTION_PROMPT
+    game.interpreter.start()
+    game.state = STATE_ACTION_PROMPT
+    indice_antes = game.interpreter._index
+    for _ in range(10):
+        game.update()
+    assert game.interpreter._index == indice_antes
+    assert game.state == STATE_ACTION_PROMPT
+
+
+def test_reiniciar_vuelve_al_flujo_de_planning(game):
+    """R recarga el nivel y queda listo para volver a PLANNING tras la intro."""
+    from core.game import STATE_INTRO, STATE_PLANNING
+    pygame.event.post(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_r))
+    game.handle_events()
+    assert game.state == STATE_INTRO
+    pygame.event.post(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_SPACE))
+    game.handle_events()
+    assert game.state == STATE_PLANNING
+
+
 def _ejecutar_hasta_terminar(game, max_frames=2000):
     """Presiona ESPACIO para pasar INTRO e IDLE, y simula frames hasta terminar."""
     from core.game import STATE_INTRO, STATE_RUNNING
