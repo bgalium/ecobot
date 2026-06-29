@@ -45,8 +45,8 @@ class Robot:
         """Avanza una celda en la dirección actual usando traslación homogénea.
 
         La posición es el vector [col, row, 1]ᵀ y la celda destino se obtiene
-        multiplicándolo por la matriz de traslación 3×3 T(dx, dy) con NumPy
-        (Unidad 4: transformaciones afines). Retorna "OK", "WALL" o "FELL".
+        multiplicándolo por la matriz de traslación 3×3 T(dx, dy) con NumPy.
+        Retorna "OK", "WALL" o "FELL".
         """
         dx, dy = settings.DIRECTIONS[self.direction]
         nueva_col, nueva_row = apply_translation(self.col, self.row, dx, dy)
