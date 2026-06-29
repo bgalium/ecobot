@@ -5,6 +5,7 @@ import settings
 from core.interpreter import Interpreter
 from core.level import Level
 from core.robot import Robot
+from ui.fail_screen import FailScreen
 from ui.intro_screen import IntroScreen
 from ui.victory_screen import VictoryScreen
 
@@ -65,6 +66,7 @@ class Game:
         self.interpreter = Interpreter(HARDCODED_INSTRUCTIONS)
         self.intro_screen = IntroScreen()
         self.victory_screen = VictoryScreen()
+        self.fail_screen = FailScreen()
         self.failure_reason: str | None = None
         self.state = STATE_INTRO
 
@@ -100,9 +102,10 @@ class Game:
                     if action in ("next", "retry"):
                         self._load_level()
 
-                elif self.state == STATE_FAILURE and event.key in (
-                        pygame.K_SPACE, pygame.K_r):
-                    self._load_level()
+                elif self.state == STATE_FAILURE:
+                    action = self.fail_screen.handle_event(event)
+                    if action == "retry":
+                        self._load_level()
 
     def update(self) -> None:
         # Animar siempre: el idle también se anima fuera de RUNNING
@@ -172,8 +175,8 @@ class Game:
                 self.interpreter.steps_used, self.level.max_slots,
             )
         elif self.state == STATE_FAILURE:
-            self._draw_overlay("FALLASTE", "Presiona ESPACIO o R para reiniciar",
-                               (220, 60, 60))
+            self.fail_screen.draw(self.screen,
+                                  self.failure_reason or "OBJECTIVES_INCOMPLETE")
         elif self.state == STATE_IDLE:
             self._draw_hint("Presiona ESPACIO para iniciar")
 
