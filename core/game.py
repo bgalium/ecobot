@@ -6,6 +6,7 @@ from core.interpreter import Interpreter
 from core.level import Level
 from core.robot import Robot
 from ui.intro_screen import IntroScreen
+from ui.victory_screen import VictoryScreen
 
 # ── Estados del juego ────────────────────────────────────────────────────────
 STATE_INTRO   = "INTRO"     # Mostrando dato ambiental antes del nivel
@@ -63,6 +64,8 @@ class Game:
         )
         self.interpreter = Interpreter(HARDCODED_INSTRUCTIONS)
         self.intro_screen = IntroScreen()
+        self.victory_screen = VictoryScreen()
+        self.failure_reason: str | None = None
         self.state = STATE_INTRO
 
     def run(self) -> None:
@@ -82,16 +85,23 @@ class Game:
                 if event.key == pygame.K_ESCAPE:
                     self.running = False
 
-                elif event.key == pygame.K_SPACE:
-                    if self.state == STATE_INTRO:
-                        self.state = STATE_IDLE
-                    elif self.state == STATE_IDLE:
-                        self.interpreter.start()
-                        self.state = STATE_RUNNING
-                    elif self.state in (STATE_VICTORY, STATE_FAILURE):
+                if event.key == pygame.K_r:
+                    self._load_level()
+
+                elif self.state == STATE_INTRO and event.key == pygame.K_SPACE:
+                    self.state = STATE_IDLE
+
+                elif self.state == STATE_IDLE and event.key == pygame.K_SPACE:
+                    self.interpreter.start()
+                    self.state = STATE_RUNNING
+
+                elif self.state == STATE_VICTORY:
+                    action = self.victory_screen.handle_event(event)
+                    if action in ("next", "retry"):
                         self._load_level()
 
-                elif event.key == pygame.K_r:
+                elif self.state == STATE_FAILURE and event.key in (
+                        pygame.K_SPACE, pygame.K_r):
                     self._load_level()
 
     def update(self) -> None:
@@ -114,14 +124,17 @@ class Game:
         result = self.interpreter.step(self.robot, self.level)
 
         if result in ("WALL", "FELL"):
+            self.failure_reason = result
             self.state = STATE_FAILURE
 
     def _evaluate_victory(self) -> str:
         """Devuelve STATE_VICTORY o STATE_FAILURE según los objetivos."""
         current_tile = self.level.grid[self.robot.row][self.robot.col]
         if current_tile != "GOAL":
+            self.failure_reason = "OBJECTIVES_INCOMPLETE"
             return STATE_FAILURE
         if not self._objectives_complete():
+            self.failure_reason = "OBJECTIVES_INCOMPLETE"
             return STATE_FAILURE
         return STATE_VICTORY
 
@@ -154,8 +167,10 @@ class Game:
             self.intro_screen.draw(self.screen, self.level.name,
                                    self.level.environmental_fact)
         elif self.state == STATE_VICTORY:
-            self._draw_overlay("VICTORIA", "Presiona ESPACIO o R para reiniciar",
-                               (50, 220, 80))
+            self.victory_screen.draw(
+                self.screen, self.level.name, self.level.environmental_fact,
+                self.interpreter.steps_used, self.level.max_slots,
+            )
         elif self.state == STATE_FAILURE:
             self._draw_overlay("FALLASTE", "Presiona ESPACIO o R para reiniciar",
                                (220, 60, 60))
