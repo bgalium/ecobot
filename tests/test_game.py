@@ -84,13 +84,17 @@ def test_desde_planning_espacio_inicia_la_ejecucion(game):
     assert game.interpreter.running is True
 
 
-def test_en_planning_las_flechas_no_rompen_ni_inician(game):
-    """PLANNING acepta input de flechas sin cambiar de estado ni fallar."""
+def test_en_planning_las_flechas_van_al_constructor_de_ruta(game, monkeypatch):
+    """En PLANNING cada flecha llega a _add_route_step sin cambiar de estado."""
     from core.game import STATE_PLANNING
     game.state = STATE_PLANNING
-    for tecla in (pygame.K_UP, pygame.K_DOWN, pygame.K_LEFT, pygame.K_RIGHT):
+    recibidas: list[int] = []
+    monkeypatch.setattr(game, "_add_route_step", lambda key: recibidas.append(key))
+    flechas = [pygame.K_UP, pygame.K_DOWN, pygame.K_LEFT, pygame.K_RIGHT]
+    for tecla in flechas:
         pygame.event.post(pygame.event.Event(pygame.KEYDOWN, key=tecla))
         game.handle_events()
+    assert recibidas == flechas
     assert game.state == STATE_PLANNING
     assert game.running is True
 
@@ -105,12 +109,43 @@ def test_en_running_las_flechas_se_ignoran(game):
 
 
 def test_action_prompt_se_resuelve_con_la_tecla_e(game):
-    """En ACTION_PROMPT la tecla E resuelve la ventana y vuelve a RUNNING."""
+    """En ACTION_PROMPT la tecla E resuelve la ventana y reanuda la ejecución."""
     from core.game import STATE_ACTION_PROMPT, STATE_RUNNING
+    game.interpreter.start()
     game.state = STATE_ACTION_PROMPT
     pygame.event.post(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_e))
     game.handle_events()
     assert game.state == STATE_RUNNING
+    assert game.interpreter.running is True  # la ejecución sigue activa
+
+
+def test_update_entra_a_action_prompt_cuando_se_dispara(game, monkeypatch):
+    """Con el trigger activo y el robot quieto, update() abre la ventana."""
+    from core.game import STATE_ACTION_PROMPT, STATE_RUNNING
+    game.interpreter.start()
+    game.state = STATE_RUNNING
+    game.robot.moving = False
+    monkeypatch.setattr(game, "_should_trigger_action_prompt", lambda: True)
+    game.update()
+    assert game.state == STATE_ACTION_PROMPT
+
+
+def test_resolver_el_prompt_no_lo_reabre_en_la_misma_celda(game, monkeypatch):
+    """Tras resolver con E, update() no reabre el prompt si el robot no avanzó."""
+    from core.game import STATE_ACTION_PROMPT, STATE_RUNNING
+    monkeypatch.setattr(game, "_should_trigger_action_prompt", lambda: True)
+    game.interpreter.start()
+    game.state = STATE_RUNNING
+    game.robot.moving = False
+    game.update()
+    assert game.state == STATE_ACTION_PROMPT
+    # Resolver con E sin que el robot cambie de celda
+    pygame.event.post(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_e))
+    game.handle_events()
+    assert game.state == STATE_RUNNING
+    game.robot.moving = False
+    game.update()
+    assert game.state != STATE_ACTION_PROMPT
 
 
 def test_en_action_prompt_el_interprete_no_avanza(game):
@@ -136,8 +171,27 @@ def test_reiniciar_vuelve_al_flujo_de_planning(game):
     assert game.state == STATE_PLANNING
 
 
+def test_r_reinicia_el_nivel_durante_running(game):
+    """R es global: reinicia (vuelve a INTRO) incluso en plena ejecución."""
+    from core.game import STATE_INTRO, STATE_RUNNING
+    game.state = STATE_RUNNING
+    pygame.event.post(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_r))
+    game.handle_events()
+    assert game.state == STATE_INTRO
+
+
+def test_espacio_reinicia_desde_victoria_y_derrota(game):
+    """Desde VICTORY/FAILURE, ESPACIO recarga el nivel (vuelve a INTRO)."""
+    from core.game import STATE_FAILURE, STATE_INTRO, STATE_VICTORY
+    for estado_final in (STATE_VICTORY, STATE_FAILURE):
+        game.state = estado_final
+        pygame.event.post(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_SPACE))
+        game.handle_events()
+        assert game.state == STATE_INTRO
+
+
 def _ejecutar_hasta_terminar(game, max_frames=2000):
-    """Presiona ESPACIO para pasar INTRO e IDLE, y simula frames hasta terminar."""
+    """Presiona ESPACIO para pasar INTRO y PLANNING, y simula frames hasta terminar."""
     from core.game import STATE_INTRO, STATE_RUNNING
     # Salir del estado INTRO si estamos allí
     if game.state == STATE_INTRO:

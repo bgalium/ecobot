@@ -65,6 +65,9 @@ class Game:
         )
         self.interpreter = Interpreter(HARDCODED_INSTRUCTIONS)
         self.intro_screen = IntroScreen()
+        # Celda donde se resolvió la última ventana de acción: evita reabrirla
+        # mientras el robot no se mueva a otra celda (ver _resolve_action_prompt).
+        self._last_prompt_cell: tuple[int, int] | None = None
         # La intro precede a PLANNING; tras pulsar ESPACIO el jugador arma la ruta.
         self.state = STATE_INTRO
 
@@ -119,8 +122,11 @@ class Game:
             self._add_route_step(event.key)
 
     def _handle_running_key(self, event: pygame.event.Event) -> None:
-        """Durante la ejecución no se acepta input de ruta (stub)."""
-        # El control de velocidad (#45) se enganchará aquí.
+        """Durante la ejecución no se acepta input de ruta (stub).
+
+        El control de velocidad (#45) se enganchará aquí.
+        """
+        pass
 
     def _handle_action_prompt_key(self, event: pygame.event.Event) -> None:
         """La tecla E resuelve la ventana de acción y reanuda la ejecución."""
@@ -155,8 +161,10 @@ class Game:
         """Cierra la ventana de acción y reanuda la ejecución.
 
         El resultado del QTE (acierto/fallo) lo definirá #43; aquí sólo se
-        reanuda el estado RUNNING.
+        reanuda RUNNING y se marca la celda actual como ya resuelta, para que
+        update() no reabra el prompt hasta que el robot avance a otra celda.
         """
+        self._last_prompt_cell = (self.robot.col, self.robot.row)
         self.state = STATE_RUNNING
 
     def update(self) -> None:
@@ -175,7 +183,9 @@ class Game:
             return
 
         # Abrir la ventana de acción si el robot quedó junto a un objetivo (#43).
-        if self._should_trigger_action_prompt():
+        # No se reabre en la misma celda donde ya se resolvió un prompt.
+        cell = (self.robot.col, self.robot.row)
+        if cell != self._last_prompt_cell and self._should_trigger_action_prompt():
             self.state = STATE_ACTION_PROMPT
             return
 
