@@ -65,9 +65,11 @@ class Game:
         )
         self.interpreter = Interpreter(HARDCODED_INSTRUCTIONS)
         self.intro_screen = IntroScreen()
-        # Celda donde se resolvió la última ventana de acción: evita reabrirla
-        # mientras el robot no se mueva a otra celda (ver _resolve_action_prompt).
-        self._last_prompt_cell: tuple[int, int] | None = None
+        # Pose (col, row, dirección) donde se resolvió la última ventana de
+        # acción: evita reabrirla en la misma pose, pero permite un nuevo prompt
+        # si el robot gira hacia otro objetivo sin cambiar de celda (ver
+        # _resolve_action_prompt).
+        self._last_prompt_state: tuple[int, int, str] | None = None
         # La intro precede a PLANNING; tras pulsar ESPACIO el jugador arma la ruta.
         self.state = STATE_INTRO
 
@@ -161,10 +163,10 @@ class Game:
         """Cierra la ventana de acción y reanuda la ejecución.
 
         El resultado del QTE (acierto/fallo) lo definirá #43; aquí sólo se
-        reanuda RUNNING y se marca la celda actual como ya resuelta, para que
-        update() no reabra el prompt hasta que el robot avance a otra celda.
+        reanuda RUNNING y se marca la pose actual como ya resuelta, para que
+        update() no reabra el prompt mientras el robot no avance ni gire.
         """
-        self._last_prompt_cell = (self.robot.col, self.robot.row)
+        self._last_prompt_state = (self.robot.col, self.robot.row, self.robot.direction)
         self.state = STATE_RUNNING
 
     def update(self) -> None:
@@ -183,9 +185,10 @@ class Game:
             return
 
         # Abrir la ventana de acción si el robot quedó junto a un objetivo (#43).
-        # No se reabre en la misma celda donde ya se resolvió un prompt.
-        cell = (self.robot.col, self.robot.row)
-        if cell != self._last_prompt_cell and self._should_trigger_action_prompt():
+        # No se reabre en la misma pose donde ya se resolvió un prompt, pero sí
+        # tras girar (otra dirección = otro objetivo de frente) o avanzar.
+        pose = (self.robot.col, self.robot.row, self.robot.direction)
+        if pose != self._last_prompt_state and self._should_trigger_action_prompt():
             self.state = STATE_ACTION_PROMPT
             return
 

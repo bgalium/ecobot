@@ -130,22 +130,49 @@ def test_update_entra_a_action_prompt_cuando_se_dispara(game, monkeypatch):
     assert game.state == STATE_ACTION_PROMPT
 
 
-def test_resolver_el_prompt_no_lo_reabre_en_la_misma_celda(game, monkeypatch):
-    """Tras resolver con E, update() no reabre el prompt si el robot no avanzó."""
+def _abrir_y_resolver_prompt(game):
+    """Lleva al juego a ACTION_PROMPT y lo resuelve con E; deja estado RUNNING."""
     from core.game import STATE_ACTION_PROMPT, STATE_RUNNING
-    monkeypatch.setattr(game, "_should_trigger_action_prompt", lambda: True)
     game.interpreter.start()
     game.state = STATE_RUNNING
     game.robot.moving = False
     game.update()
     assert game.state == STATE_ACTION_PROMPT
-    # Resolver con E sin que el robot cambie de celda
     pygame.event.post(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_e))
     game.handle_events()
     assert game.state == STATE_RUNNING
+
+
+def test_resolver_el_prompt_no_lo_reabre_en_la_misma_pose(game, monkeypatch):
+    """Tras resolver con E, update() no reabre el prompt si el robot no cambió de pose."""
+    from core.game import STATE_ACTION_PROMPT, STATE_RUNNING
+    monkeypatch.setattr(game, "_should_trigger_action_prompt", lambda: True)
+    _abrir_y_resolver_prompt(game)
     game.robot.moving = False
     game.update()
     assert game.state != STATE_ACTION_PROMPT
+
+
+def test_girar_en_la_misma_celda_reabre_el_prompt(game, monkeypatch):
+    """Si el robot gira hacia otro objetivo sin moverse, se abre un nuevo prompt."""
+    from core.game import STATE_ACTION_PROMPT, STATE_RUNNING
+    monkeypatch.setattr(game, "_should_trigger_action_prompt", lambda: True)
+    _abrir_y_resolver_prompt(game)
+    # Otra dirección en la misma celda = otro objetivo de frente → nuevo prompt.
+    game.robot.turn_left()
+    game.robot.moving = False
+    game.update()
+    assert game.state == STATE_ACTION_PROMPT
+
+
+def test_la_tecla_e_se_ignora_fuera_de_action_prompt(game):
+    """E solo actúa en ACTION_PROMPT; en otros estados no muta la máquina."""
+    from core.game import STATE_PLANNING, STATE_RUNNING
+    for estado in (STATE_PLANNING, STATE_RUNNING):
+        game.state = estado
+        pygame.event.post(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_e))
+        game.handle_events()
+        assert game.state == estado
 
 
 def test_en_action_prompt_el_interprete_no_avanza(game):
