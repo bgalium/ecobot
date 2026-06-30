@@ -63,6 +63,10 @@ estos derivados.
 - Tile de OIL_SPILL y CORAL: modificaciones propias sobre tiles CC0.
 
 ## Nivel 3 — Ciudad (`assets/tiles/city/`)
+- **Gallet City** por Adam Saltsman (Dominio Público) — `galletcity_tiles.png`
+  Tileset de ciudad top-down 8×8 con 166 tiles (calles, veredas, edificios).
+  Tile 32 (vereda) → CITY_FLOOR, Tile 139 (techo) → BUILDING.
+  Fuente: https://adamatomic.itch.io/gallet-city
 - **Fog Animation** por AntumDeluge (CC0) — `fog.png`
   Capa de niebla/smog tileable con canal alpha para superponer sobre la ciudad.
   Fuente: https://opengameart.org/content/fog-animation

@@ -12,10 +12,17 @@ TILESET_PADDED = TILESHEET_DIR / "Tileset1xPadding.png"
 TILESET_PLAIN  = TILESHEET_DIR / "Tileset.png"
 DECORATIONS    = TILESHEET_DIR / "Decorations.png"
 
+CITY_DIR       = Path("assets") / "tiles" / "city"
+CITY_TILESET   = CITY_DIR / "galletcity_tiles.png"
+
 # ── Parámetros de grilla ───────────────────────────────────────────────────
 TILE_W = 16
 TILE_H = 16
 PADDING = 1       # Tileset1xPadding.png usa 1px de padding
+
+CITY_TILE_W = 8   # Gallet City usa tiles de 8×8
+CITY_TILE_H = 8
+CITY_COLS = 8     # 8 columnas en el spritesheet
 
 # ── Posiciones de tiles en la grilla (col, row) ──────────────────────────
 # Tileset1xPadding.png: 8 cols × 16 rows
@@ -105,6 +112,13 @@ FALLEN_LEAVES     = (5, 9)
 STONE_LIGHT       = (6, 9)
 STONE_DARK        = (7, 9)
 
+# ── Ciudad (Gallet City — 8×8 tiles, spritesheet de 168 tiles) ────────────
+# Tile 32 (row 4, col 0) = vereda beige claro → CITY_FLOOR
+# Tile 139 (row 17, col 3) = techo/edificio marrón → BUILDING
+# Tile 46 (row 5, col 6) = asfalto gris claro → variante CITY_FLOOR
+CITY_FLOOR_TILE = (4, 0)   # sidewalk pavement
+BUILDING_TILE   = (17, 3)  # brown roof/building
+
 # ── Decoraciones (recortes libres desde Decorations.png) ──────────────────
 # Detectadas automáticamente por tools/extract_decorations.py.
 # Valores por defecto: (x, y, w, h) — se sobreescriben al cargar el JSON.
@@ -154,6 +168,7 @@ def init_atlas(tile_size: int) -> None:
 
     _sheets["main"] = SpriteSheet(TILESET_PADDED)
     _sheets["decorations"] = SpriteSheet(DECORATIONS)
+    _sheets["city"] = SpriteSheet(CITY_TILESET)
 
     # Cargar rects de decoraciones desde JSON si existe
     json_path = TILESHEET_DIR / "_decoration_rects.json"
@@ -177,6 +192,23 @@ def get_tile(col: int, row: int, padding: int = PADDING) -> pygame.Surface | Non
                 tile = pygame.transform.scale(
                     tile, (TILE_W * TILE_SCALE, TILE_H * TILE_SCALE)
                 )
+            _scaled_tiles[key] = tile
+    return _scaled_tiles[key]
+
+
+def get_city_tile(row: int, col: int) -> pygame.Surface | None:
+    """Obtiene un tile de 8×8 del spritesheet de Gallet City, escalado a TILE_SIZE."""
+    key = ("city", row, col)
+    if key not in _scaled_tiles:
+        sheet = _sheets["city"]
+        tile = sheet.get_tile(col, row, CITY_TILE_W, CITY_TILE_H, 0)
+        if tile is None:
+            _scaled_tiles[key] = None
+        else:
+            city_scale = (TILE_SCALE * TILE_W) // CITY_TILE_W if TILE_SCALE else 1
+            tile = pygame.transform.scale(
+                tile, (CITY_TILE_W * city_scale, CITY_TILE_H * city_scale)
+            )
             _scaled_tiles[key] = tile
     return _scaled_tiles[key]
 

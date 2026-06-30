@@ -6,7 +6,7 @@ import pygame
 
 import settings
 from utils.assets import load_image
-from utils.tile_atlas import init_atlas, get_tile, get_decoration
+from utils.tile_atlas import init_atlas, get_tile, get_city_tile, get_decoration
 
 # Tipos de celda sobre los que el robot puede pararse
 WALKABLE_TILES = {"FLOOR", "GOAL", "WATER", "CITY_FLOOR"}
@@ -19,16 +19,20 @@ WALKABLE_TILES = {"FLOOR", "GOAL", "WATER", "CITY_FLOOR"}
 # por lo que WALL, TREE y GOAL se resuelven con Decorations.png.
 TILE_TO_SPRITESHEET: dict[str, tuple[int, int, int]] = {
     "FLOOR":       (1, 1, 1),   # pasto sólido limpio
-    "CITY_FLOOR":  (1, 1, 1),
     "DEAD_TREE":   (6, 9, 1),   # tierra/dirt -> sendero
     "TRASH":       (6, 9, 1),   # mismo tono tierra
     "WATER":       (1, 12, 1),  # agua sólida
     "SMOG":        (1, 1, 1),
-    "BUILDING":    (6, 6, 1),   # dirt sólido con textura
     "ROCK":        (6, 6, 1),
     "OIL_SPILL":   (6, 9, 1),
     "PLASTIC":     (6, 9, 1),
     "CORAL":       (1, 9, 1),
+}
+
+# (row, col) dentro de galletcity_tiles.png — 8×8 tiles sin padding.
+CITY_TILE_POSITIONS: dict[str, tuple[int, int]] = {
+    "CITY_FLOOR":  (4, 0),   # sidewalk beige (posición más común)
+    "BUILDING":    (17, 3),  # techo/edificio marrón
 }
 
 # Decoraciones (Decorations.png) como overlay sobre el tile base
@@ -71,7 +75,13 @@ class Level:
         size = (settings.TILE_SIZE, settings.TILE_SIZE)
         self.tile_images: dict[str, pygame.Surface] = {}
         for tile_type in settings.TILE_COLORS:
-            # 1. Intentar desde spritesheet
+            # 0. Ciudad: spritesheet de Gallet City (8×8)
+            city_pos = CITY_TILE_POSITIONS.get(tile_type)
+            if city_pos is not None:
+                row, col = city_pos
+                self.tile_images[tile_type] = get_city_tile(row, col)
+                continue
+            # 1. Bosque: spritesheet Tileset1xPadding (16×16 con padding)
             sheet_pos = TILE_TO_SPRITESHEET.get(tile_type)
             if sheet_pos is not None:
                 col, row, padding = sheet_pos
