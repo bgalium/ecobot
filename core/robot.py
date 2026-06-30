@@ -76,7 +76,7 @@ class Robot:
     def action(self, level) -> str:
         """Actúa sobre la celda frente al robot.
 
-        Retorna "PLANTED", "COLLECTED" o "NOTHING".
+        Retorna "PLANTED", "COLLECTED", "CLEANED" o "NOTHING".
         """
         dx, dy = settings.DIRECTIONS[self.direction]
         front_col = self.col + dx
@@ -88,6 +88,12 @@ class Robot:
         if cell == "TRASH":
             level.set_cell(front_col, front_row, "FLOOR")
             return "COLLECTED"
+        if cell == "OIL_SPILL":
+            level.set_cell(front_col, front_row, "WATER")
+            return "CLEANED"
+        if cell == "PLASTIC":
+            level.set_cell(front_col, front_row, "WATER")
+            return "CLEANED"
         return "NOTHING"
 
     
