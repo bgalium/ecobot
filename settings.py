@@ -30,6 +30,16 @@ TILE_COLORS = {
     "TREE":      (52, 140, 70),   # árbol plantado
     "TRASH":     (180, 60, 170),  # basura
     "GOAL":      (240, 200, 70),  # meta
+    # Nivel 2 — Océano
+    "WATER":     (30, 100, 180),  # océano
+    "ROCK":      (80, 85, 75),    # roca/arrecife
+    "OIL_SPILL": (30, 30, 30),    # mancha de petróleo
+    "PLASTIC":   (200, 200, 210), # plástico flotando
+    "CORAL":     (255, 100, 130), # coral decorativo
+    # Nivel 3 — Ciudad
+    "SMOG":      (160, 160, 140), # niebla/smog
+    "BUILDING":  (100, 100, 110), # edificio
+    "CITY_FLOOR":(70, 70, 75),    # suelo urbano
 }
 COLOR_GRID_LINE = (40, 40, 48)
 COLOR_ROBOT     = (70, 170, 220)
