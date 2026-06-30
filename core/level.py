@@ -113,6 +113,17 @@ class Level:
             new_size = (max(1, int(w * scale)), max(1, int(h * scale)))
             self.decoration_images[tile_type] = pygame.transform.smoothscale(surf, new_size)
 
+        # PLASTIC: overlay de botella flotando (bottle2idle.png, primer frame 32×32)
+        bottle_path = settings.ASSETS_DIR / "tiles" / "ocean" / "bottle2idle.png"
+        bottle_raw = load_image(bottle_path)
+        if bottle_raw is not None:
+            bw, bh = bottle_raw.get_size()
+            frame = bottle_raw.subsurface((0, 0, min(32, bw), min(32, bh)))
+            scale = settings.TILE_SIZE / max(frame.get_width(), frame.get_height())
+            new_size = (max(1, int(frame.get_width() * scale)),
+                        max(1, int(frame.get_height() * scale)))
+            self.decoration_images["PLASTIC"] = pygame.transform.smoothscale(frame, new_size)
+
     def is_walkable(self, col: int, row: int) -> bool:
         """Indica si el robot puede pararse en la celda (col, row)"""
         if not (0 <= col < self.cols and 0 <= row < self.rows):
