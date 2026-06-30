@@ -41,6 +41,8 @@ def centro(origin=(0, 0), col=0, row=0):
 # ── Level ────────────────────────────────────────────────────────────────────
 
 def test_level_usa_imagen_de_tile_si_existe(tmp_path, level_path, monkeypatch):
+    import core.level as cl
+    monkeypatch.setattr(cl, "TILE_TO_SPRITESHEET", {})  # sin atlas → usa PNG
     _save_png(tmp_path / "floor.png", ROJO)
     monkeypatch.setattr(settings, "TILES_SPRITES_DIR", tmp_path)
     surface = pygame.Surface((128, 128))
@@ -49,7 +51,9 @@ def test_level_usa_imagen_de_tile_si_existe(tmp_path, level_path, monkeypatch):
 
 
 def test_level_cae_al_color_si_no_hay_imagen(tmp_path, level_path, monkeypatch):
-    monkeypatch.setattr(settings, "TILES_SPRITES_DIR", tmp_path)  # carpeta vacía
+    import core.level as cl
+    monkeypatch.setattr(cl, "TILE_TO_SPRITESHEET", {})
+    monkeypatch.setattr(settings, "TILES_SPRITES_DIR", tmp_path)
     surface = pygame.Surface((128, 128))
     Level(level_path).draw(surface, (0, 0))
     assert surface.get_at(centro())[:3] == settings.TILE_COLORS["FLOOR"]
