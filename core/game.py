@@ -5,7 +5,9 @@ import settings
 from core.interpreter import Interpreter
 from core.level import Level
 from core.robot import Robot
+from ui.fail_screen import FailScreen
 from ui.intro_screen import IntroScreen
+from ui.victory_screen import VictoryScreen
 
 # ── Estados del juego ────────────────────────────────────────────────────────
 STATE_INTRO         = "INTRO"          # Mostrando dato ambiental antes del nivel
@@ -65,6 +67,9 @@ class Game:
         )
         self.interpreter = Interpreter(HARDCODED_INSTRUCTIONS)
         self.intro_screen = IntroScreen()
+        self.victory_screen = VictoryScreen()
+        self.fail_screen = FailScreen()
+        self.failure_reason: str | None = None
         # Pose (col, row, dirección) donde se resolvió la última ventana de
         # acción: evita reabrirla en la misma pose, pero permite un nuevo prompt
         # si el robot gira hacia otro objetivo sin cambiar de celda (ver
@@ -90,7 +95,6 @@ class Game:
 
     def _handle_key(self, event: pygame.event.Event) -> None:
         """Despacha la tecla al manejador del estado actual."""
-        # Teclas globales, válidas en cualquier estado.
         if event.key == pygame.K_ESCAPE:
             self.running = False
             return
@@ -135,9 +139,15 @@ class Game:
             self._resolve_action_prompt()
 
     def _handle_end_key(self, event: pygame.event.Event) -> None:
-        """En victoria/derrota, ESPACIO reinicia el nivel."""
-        if event.key == pygame.K_SPACE:
-            self._load_level()
+        """Delega el evento a la pantalla de victoria o derrota."""
+        if self.state == STATE_VICTORY:
+            action = self.victory_screen.handle_event(event)
+            if action in ("next", "retry"):
+                self._load_level()
+        elif self.state == STATE_FAILURE:
+            action = self.fail_screen.handle_event(event)
+            if action == "retry":
+                self._load_level()
 
     # ------------------------------------------------------------------
     # Puntos de extensión para fase 2 (stubs vacíos)
@@ -202,14 +212,17 @@ class Game:
         result = self.interpreter.step(self.robot, self.level)
 
         if result in ("WALL", "FELL"):
+            self.failure_reason = result
             self.state = STATE_FAILURE
 
     def _evaluate_victory(self) -> str:
         """Devuelve STATE_VICTORY o STATE_FAILURE según los objetivos."""
         current_tile = self.level.grid[self.robot.row][self.robot.col]
         if current_tile != "GOAL":
+            self.failure_reason = "OBJECTIVES_INCOMPLETE"
             return STATE_FAILURE
         if not self._objectives_complete():
+            self.failure_reason = "OBJECTIVES_INCOMPLETE"
             return STATE_FAILURE
         return STATE_VICTORY
 
@@ -242,11 +255,13 @@ class Game:
             self.intro_screen.draw(self.screen, self.level.name,
                                    self.level.environmental_fact)
         elif self.state == STATE_VICTORY:
-            self._draw_overlay("VICTORIA", "Presiona ESPACIO o R para reiniciar",
-                               (50, 220, 80))
+            self.victory_screen.draw(
+                self.screen, self.level.name, self.level.environmental_fact,
+                self.interpreter.steps_used, self.level.max_slots,
+            )
         elif self.state == STATE_FAILURE:
-            self._draw_overlay("FALLASTE", "Presiona ESPACIO o R para reiniciar",
-                               (220, 60, 60))
+            self.fail_screen.draw(self.screen,
+                                  self.failure_reason or "OBJECTIVES_INCOMPLETE")
         elif self.state == STATE_ACTION_PROMPT:
             self._draw_hint("Presiona E")
         elif self.state == STATE_PLANNING:

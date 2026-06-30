@@ -25,6 +25,10 @@ class Interpreter:
         self.running: bool = False
         self.finished: bool = False
 
+    @property
+    def steps_used(self) -> int:
+        return self._index
+
     # Control público
 
     def start(self) -> None:
