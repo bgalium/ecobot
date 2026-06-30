@@ -10,11 +10,13 @@ from ui.intro_screen import IntroScreen
 from ui.victory_screen import VictoryScreen
 
 # ── Estados del juego ────────────────────────────────────────────────────────
-STATE_INTRO   = "INTRO"     # Mostrando dato ambiental antes del nivel
-STATE_IDLE    = "IDLE"      # Esperando que el jugador pulse ESPACIO
-STATE_RUNNING = "RUNNING"   # Ejecutando instrucciones
-STATE_VICTORY = "VICTORY"   # Robot en GOAL y todos los objetivos cumplidos
-STATE_FAILURE = "FAILURE"   # Robot chocó o cayó
+STATE_INTRO         = "INTRO"          # Mostrando dato ambiental antes del nivel
+STATE_PLANNING      = "PLANNING"       # El jugador arma la ruta (acepta flechas)
+STATE_RUNNING       = "RUNNING"        # El robot ejecuta la secuencia paso a paso
+STATE_ACTION_PROMPT = "ACTION_PROMPT"  # Pausa la ejecución junto a un objetivo y
+                                       # espera la tecla E (QTE, #43)
+STATE_VICTORY       = "VICTORY"        # Robot en GOAL y todos los objetivos cumplidos
+STATE_FAILURE       = "FAILURE"        # Robot chocó o cayó
 
 # ── Secuencia hardcodeada para level_1.json (Bosque Amazónico 5×4) ───────────
 # Robot en (0,3) mirando RIGHT · DEAD_TREE en (2,2) y (3,2) · GOAL en (4,3).
@@ -68,6 +70,12 @@ class Game:
         self.victory_screen = VictoryScreen()
         self.fail_screen = FailScreen()
         self.failure_reason: str | None = None
+        # Pose (col, row, dirección) donde se resolvió la última ventana de
+        # acción: evita reabrirla en la misma pose, pero permite un nuevo prompt
+        # si el robot gira hacia otro objetivo sin cambiar de celda (ver
+        # _resolve_action_prompt).
+        self._last_prompt_state: tuple[int, int, str] | None = None
+        # La intro precede a PLANNING; tras pulsar ESPACIO el jugador arma la ruta.
         self.state = STATE_INTRO
 
     def run(self) -> None:
@@ -82,40 +90,117 @@ class Game:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
-
             elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    self.running = False
+                self._handle_key(event)
 
-                if event.key == pygame.K_r:
-                    self._load_level()
+    def _handle_key(self, event: pygame.event.Event) -> None:
+        """Despacha la tecla al manejador del estado actual."""
+        if event.key == pygame.K_ESCAPE:
+            self.running = False
+            return
+        if event.key == pygame.K_r:
+            self._load_level()
+            return
 
-                elif self.state == STATE_INTRO and event.key == pygame.K_SPACE:
-                    self.state = STATE_IDLE
+        if self.state == STATE_INTRO:
+            self._handle_intro_key(event)
+        elif self.state == STATE_PLANNING:
+            self._handle_planning_key(event)
+        elif self.state == STATE_RUNNING:
+            self._handle_running_key(event)
+        elif self.state == STATE_ACTION_PROMPT:
+            self._handle_action_prompt_key(event)
+        elif self.state in (STATE_VICTORY, STATE_FAILURE):
+            self._handle_end_key(event)
 
-                elif self.state == STATE_IDLE and event.key == pygame.K_SPACE:
-                    self.interpreter.start()
-                    self.state = STATE_RUNNING
+    def _handle_intro_key(self, event: pygame.event.Event) -> None:
+        """En la intro, ESPACIO pasa a la fase de planificación."""
+        if event.key == pygame.K_SPACE:
+            self.state = STATE_PLANNING
 
-                elif self.state == STATE_VICTORY:
-                    action = self.victory_screen.handle_event(event)
-                    if action in ("next", "retry"):
-                        self._load_level()
+    def _handle_planning_key(self, event: pygame.event.Event) -> None:
+        """El jugador arma la ruta; ESPACIO la ejecuta."""
+        if event.key == pygame.K_SPACE:
+            self.interpreter.start()
+            self.state = STATE_RUNNING
+        elif event.key in (pygame.K_UP, pygame.K_DOWN,
+                           pygame.K_LEFT, pygame.K_RIGHT):
+            self._add_route_step(event.key)
 
-                elif self.state == STATE_FAILURE:
-                    action = self.fail_screen.handle_event(event)
-                    if action == "retry":
-                        self._load_level()
+    def _handle_running_key(self, event: pygame.event.Event) -> None:
+        """Durante la ejecución no se acepta input de ruta (stub).
+
+        El control de velocidad (#45) se enganchará aquí.
+        """
+
+    def _handle_action_prompt_key(self, event: pygame.event.Event) -> None:
+        """La tecla E resuelve la ventana de acción y reanuda la ejecución."""
+        if event.key == pygame.K_e:
+            self._resolve_action_prompt()
+
+    def _handle_end_key(self, event: pygame.event.Event) -> None:
+        """Delega el evento a la pantalla de victoria o derrota."""
+        if self.state == STATE_VICTORY:
+            action = self.victory_screen.handle_event(event)
+            if action in ("next", "retry"):
+                self._load_level()
+        elif self.state == STATE_FAILURE:
+            action = self.fail_screen.handle_event(event)
+            if action == "retry":
+                self._load_level()
+
+    # ------------------------------------------------------------------
+    # Puntos de extensión para fase 2 (stubs vacíos)
+    # ------------------------------------------------------------------
+
+    def _add_route_step(self, key: int) -> None:
+        """Registra un paso de ruta desde una tecla de flecha.
+
+        El panel de ruta (#16) implementará aquí la construcción real de la
+        secuencia. Por ahora es un stub que sólo recibe la pulsación.
+        """
+
+    def _should_trigger_action_prompt(self) -> bool:
+        """Indica si el robot quedó junto a un objetivo y debe abrirse el QTE.
+
+        La detección real (robot adyacente a un objetivo activo) la implementa
+        la ventana de acción (#43). De momento nunca se dispara.
+        """
+        return False
+
+    def _resolve_action_prompt(self) -> None:
+        """Cierra la ventana de acción y reanuda la ejecución.
+
+        El resultado del QTE (acierto/fallo) lo definirá #43; aquí sólo se
+        reanuda RUNNING y se marca la pose actual como ya resuelta, para que
+        update() no reabra el prompt mientras el robot no avance ni gire.
+        """
+        self._last_prompt_state = (self.robot.col, self.robot.row, self.robot.direction)
+        self.state = STATE_RUNNING
 
     def update(self) -> None:
-        # Animar siempre: el idle también se anima fuera de RUNNING
+        # Animar siempre: la animación idle también corre fuera de RUNNING
         self.robot.update()
+
+        # ACTION_PROMPT pausa la ejecución hasta que el jugador pulse E.
+        if self.state == STATE_ACTION_PROMPT:
+            return
 
         if self.state != STATE_RUNNING:
             return
 
         # Esperar a que el robot termine de moverse
         if self.robot.moving:
+            return
+
+        # Abrir la ventana de acción si el robot quedó junto a un objetivo (#43).
+        # Disparo POSICIONAL: depende solo de la pose del robot, no de si la
+        # próxima instrucción del intérprete es ACTION (la detección la implementa
+        # #43). No se reabre en la misma pose donde ya se resolvió un prompt, pero
+        # sí tras girar (otra dirección = otro objetivo de frente) o avanzar.
+        pose = (self.robot.col, self.robot.row, self.robot.direction)
+        if pose != self._last_prompt_state and self._should_trigger_action_prompt():
+            self.state = STATE_ACTION_PROMPT
             return
 
         # Evaluar el final recién aquí: con la última animación ya completa,
@@ -177,7 +262,9 @@ class Game:
         elif self.state == STATE_FAILURE:
             self.fail_screen.draw(self.screen,
                                   self.failure_reason or "OBJECTIVES_INCOMPLETE")
-        elif self.state == STATE_IDLE:
+        elif self.state == STATE_ACTION_PROMPT:
+            self._draw_hint("Presiona E")
+        elif self.state == STATE_PLANNING:
             self._draw_hint("Presiona ESPACIO para iniciar")
 
         pygame.display.flip()
