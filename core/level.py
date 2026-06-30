@@ -138,4 +138,10 @@ class Level:
                     dy = origin_y + row * settings.TILE_SIZE + settings.TILE_SIZE - dh
                     surface.blit(deco_img, (dx, dy))
 
+                # SMOG: capa semitransparente grisácea sobre el tile
+                if tile_type == "SMOG":
+                    smog = pygame.Surface((settings.TILE_SIZE, settings.TILE_SIZE), pygame.SRCALPHA)
+                    smog.fill((120, 120, 100, 140))
+                    surface.blit(smog, rect)
+
                 pygame.draw.rect(surface, settings.COLOR_GRID_LINE, rect, width=1)
