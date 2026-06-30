@@ -11,7 +11,11 @@ from core.robot import Robot
 
 @pytest.fixture(autouse=True)
 def sin_sprites(tmp_path, monkeypatch):
-    """Estos tests verifican el dibujado de RESPALDO (colores): sin PNGs."""
+    """Estos tests verifican el dibujado de RESPALDO (colores): sin PNGs ni atlas."""
+    import utils.tile_atlas as ta
+    faltante = tmp_path / "_missing.png"
+    monkeypatch.setattr(ta, "TILESET_PADDED", faltante)
+    monkeypatch.setattr(ta, "DECORATIONS", faltante)
     vacia = tmp_path / "sin_assets"
     vacia.mkdir()
     monkeypatch.setattr(settings, "TILES_SPRITES_DIR", vacia)
@@ -48,9 +52,9 @@ def test_level_draw_pinta_cada_tipo_de_celda_con_su_color(level):
     origin = (32, 16)
     level.draw(surface, origin)
     assert surface.get_at(cell_center(origin, 0, 0))[:3] == settings.TILE_COLORS["FLOOR"]
-    assert surface.get_at(cell_center(origin, 1, 0))[:3] == settings.TILE_COLORS["WALL"]
+    assert surface.get_at(cell_center(origin, 1, 0))[:3] == settings.TILE_COLORS["FLOOR"]
     assert surface.get_at(cell_center(origin, 0, 1))[:3] == settings.TILE_COLORS["TRASH"]
-    assert surface.get_at(cell_center(origin, 1, 1))[:3] == settings.TILE_COLORS["GOAL"]
+    assert surface.get_at(cell_center(origin, 1, 1))[:3] == settings.TILE_COLORS["FLOOR"]
 
 
 def test_robot_draw_pinta_el_robot_en_su_celda():

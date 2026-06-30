@@ -164,17 +164,20 @@ def init_atlas(tile_size: int) -> None:
         _loaded_rects.update(data)
 
 
-def get_tile(col: int, row: int, padding: int = PADDING) -> pygame.Surface:
+def get_tile(col: int, row: int, padding: int = PADDING) -> pygame.Surface | None:
     """Obtiene un tile de la grilla, escalado a TILE_SIZE."""
     key = (col, row, padding)
     if key not in _scaled_tiles:
         sheet = _sheets["main"]
         tile = sheet.get_tile(col, row, TILE_W, TILE_H, padding)
-        if TILE_SCALE and TILE_SCALE != 1:
-            tile = pygame.transform.scale(
-                tile, (TILE_W * TILE_SCALE, TILE_H * TILE_SCALE)
-            )
-        _scaled_tiles[key] = tile
+        if tile is None:
+            _scaled_tiles[key] = None
+        else:
+            if TILE_SCALE and TILE_SCALE != 1:
+                tile = pygame.transform.scale(
+                    tile, (TILE_W * TILE_SCALE, TILE_H * TILE_SCALE)
+                )
+            _scaled_tiles[key] = tile
     return _scaled_tiles[key]
 
 
@@ -194,6 +197,8 @@ def get_decoration(name: str) -> pygame.Surface | None:
     x, y, w, h = rect
     sheet = _sheets["decorations"]
     sprite = sheet.get_sprite(x, y, w, h)
+    if sprite is None:
+        return None
     if TILE_SCALE and TILE_SCALE != 1:
         sprite = pygame.transform.scale(
             sprite, (w * TILE_SCALE, h * TILE_SCALE)
