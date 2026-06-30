@@ -76,6 +76,10 @@ class Game:
         self.victory_screen = VictoryScreen()
         self.fail_screen = FailScreen()
         self.failure_reason: str | None = None
+        # Temporizador del nivel (#42): cuenta regresiva en frames, sólo durante
+        # RUNNING. time_limit 0 = sin límite. El HUD (#17) lee time_remaining_seconds.
+        self._timer_enabled: bool = self.level.time_limit > 0
+        self.time_remaining_frames: int = self.level.time_limit * settings.FPS
         # Pose (col, row, dirección) donde se resolvió la última ventana de
         # acción: evita reabrirla en la misma pose, pero permite un nuevo prompt
         # si el robot gira hacia otro objetivo sin cambiar de celda (ver
@@ -83,6 +87,11 @@ class Game:
         self._last_prompt_state: tuple[int, int, str] | None = None
         # La intro precede a PLANNING; tras pulsar ESPACIO el jugador arma la ruta.
         self.state = STATE_INTRO
+
+    @property
+    def time_remaining_seconds(self) -> float:
+        """Segundos restantes del temporizador (para el HUD, #17)."""
+        return max(0, self.time_remaining_frames) / settings.FPS
 
     def run(self) -> None:
         while self.running:
@@ -194,6 +203,15 @@ class Game:
 
         if self.state != STATE_RUNNING:
             return
+
+        # Temporizador (#42): corre sólo en RUNNING, cada frame (incluso mientras
+        # el robot se mueve). Si se agota sin completar los objetivos → derrota.
+        if self._timer_enabled:
+            self.time_remaining_frames -= 1
+            if self.time_remaining_frames <= 0 and not self._objectives_complete():
+                self.failure_reason = "TIMEOUT"  # clave de REASON_MESSAGES (#54)
+                self.state = STATE_FAILURE
+                return
 
         # Esperar a que el robot termine de moverse
         if self.robot.moving:

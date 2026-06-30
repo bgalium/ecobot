@@ -292,3 +292,60 @@ def test_al_ganar_el_robot_termino_su_animacion(game):
     assert game.robot.moving is False
     assert game.robot.pixel_x == game.robot.target_x
     assert game.robot.pixel_y == game.robot.target_y
+
+
+# ── Temporizador por nivel (#42) ─────────────────────────────────────────────
+
+def test_timer_se_inicializa_desde_el_time_limit_del_nivel(game):
+    """Al cargar, el tiempo restante arranca en level.time_limit segundos."""
+    assert game.level.time_limit > 0  # level_1.json define time_limit
+    assert game.time_remaining_seconds == game.level.time_limit
+
+
+def test_timer_decrementa_solo_en_running(game):
+    """El contador baja en RUNNING, pero no en PLANNING ni ACTION_PROMPT."""
+    from core.game import STATE_ACTION_PROMPT, STATE_PLANNING, STATE_RUNNING
+    antes = game.time_remaining_frames
+    game.state = STATE_PLANNING
+    for _ in range(10):
+        game.update()
+    assert game.time_remaining_frames == antes  # PLANNING no consume tiempo
+    game.state = STATE_ACTION_PROMPT
+    for _ in range(10):
+        game.update()
+    assert game.time_remaining_frames == antes  # ACTION_PROMPT tampoco
+    game.interpreter.start()
+    game.state = STATE_RUNNING
+    game.update()
+    assert game.time_remaining_frames < antes  # RUNNING sí
+
+
+def test_timer_agotado_con_objetivos_pendientes_es_derrota(game):
+    """Si el tiempo llega a 0 sin objetivos completos → FAILURE con razón TIMEOUT."""
+    from core.game import STATE_FAILURE, STATE_RUNNING
+    game.interpreter.start()
+    game.state = STATE_RUNNING
+    game.time_remaining_frames = 1
+    game.update()
+    assert game.state == STATE_FAILURE
+    assert game.failure_reason == "TIMEOUT"  # clave que entiende FailScreen (#54)
+
+
+def test_timer_se_resetea_al_reiniciar(game):
+    """R recarga el nivel y el contador vuelve a su valor inicial."""
+    inicial = game.level.time_limit * settings.FPS
+    game.time_remaining_frames = 5
+    pygame.event.post(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_r))
+    game.handle_events()
+    assert game.time_remaining_frames == inicial
+
+
+def test_nivel_sin_time_limit_no_falla_por_tiempo(game):
+    """Con el temporizador desactivado (time_limit 0), no hay derrota por tiempo."""
+    from core.game import STATE_RUNNING
+    game._timer_enabled = False
+    game.interpreter.start()
+    game.state = STATE_RUNNING
+    game.time_remaining_frames = 0
+    game.update()
+    assert game.state == STATE_RUNNING

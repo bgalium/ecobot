@@ -45,6 +45,27 @@ def test_load_lee_posicion_inicial_del_robot(level_file):
     assert level.robot_start_direction == "RIGHT"
 
 
+def test_load_time_limit_ausente_es_cero(level_file):
+    """Sin time_limit en el JSON, el nivel reporta 0 (temporizador desactivado)."""
+    level = Level(level_file)
+    assert level.time_limit == 0
+
+
+def test_load_lee_time_limit_si_existe(tmp_path):
+    """Con time_limit en el JSON, Level lo expone en segundos."""
+    data = {
+        "name": "n", "environmental_fact": "f", "max_slots": 5,
+        "available_instructions": ["MOVE"],
+        "robot_start": {"col": 0, "row": 0, "direction": "RIGHT"},
+        "grid": [["FLOOR", "GOAL"]],
+        "objectives": [],
+        "time_limit": 30,
+    }
+    path = tmp_path / "con_tiempo.json"
+    path.write_text(json.dumps(data), encoding="utf-8")
+    assert Level(path).time_limit == 30
+
+
 def test_load_calcula_dimensiones_de_la_grilla(level_file):
     level = Level(level_file)
     assert level.cols == 3
