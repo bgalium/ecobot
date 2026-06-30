@@ -16,22 +16,28 @@ STATE_ACTION_PROMPT = "ACTION_PROMPT"  # Pausa la ejecución junto a un objetivo
 STATE_VICTORY       = "VICTORY"        # Robot en GOAL y todos los objetivos cumplidos
 STATE_FAILURE       = "FAILURE"        # Robot chocó o cayó
 
-# ── Secuencia hardcodeada para level_1.json (Bosque Amazónico 5×4) ───────────
-# Robot en (0,3) mirando RIGHT · DEAD_TREE en (2,2) y (3,2) · GOAL en (4,3).
-# Solución en 10 instrucciones (= max_slots): avanza por la fila de abajo y
-# planta cada árbol girando hacia arriba. El panel drag & drop (#16) la
-# reemplazará por la secuencia que arme el jugador.
+# ── Secuencia hardcodeada para level_1.json (Bosque Amazónico 7×5) ───────────
+# Robot en (0,4) mirando RIGHT · DEAD_TREE en (2,2) y (4,2) · GOAL en (6,0).
+# Solución óptima en 17 instrucciones (ratio 0.68 → 3 estrellas con max_slots=25).
+# El panel de ruta (#16) la reemplazará por la secuencia que arme el jugador.
 HARDCODED_INSTRUCTIONS: list[str] = [
-    "MOVE",        # (0,3) → (1,3)
-    "MOVE",        # (1,3) → (2,3)
-    "TURN_LEFT",   # RIGHT → UP (mira al DEAD_TREE de (2,2))
-    "ACTION",      # planta → TREE
+    "MOVE",        # (0,4) → (1,4)
+    "MOVE",        # (1,4) → (2,4)
+    "TURN_LEFT",   # RIGHT → UP
+    "MOVE",        # (2,4) → (2,3)
+    "ACTION",      # planta DEAD_TREE en (2,2) → TREE
     "TURN_RIGHT",  # UP → RIGHT
     "MOVE",        # (2,3) → (3,3)
-    "TURN_LEFT",   # RIGHT → UP (mira al DEAD_TREE de (3,2))
-    "ACTION",      # planta → TREE
+    "MOVE",        # (3,3) → (4,3)
+    "TURN_LEFT",   # RIGHT → UP
+    "ACTION",      # planta DEAD_TREE en (4,2) → TREE
     "TURN_RIGHT",  # UP → RIGHT
-    "MOVE",        # (3,3) → (4,3)  ← GOAL
+    "MOVE",        # (4,3) → (5,3)
+    "MOVE",        # (5,3) → (6,3)
+    "TURN_LEFT",   # RIGHT → UP
+    "MOVE",        # (6,3) → (6,2)
+    "MOVE",        # (6,2) → (6,1)
+    "MOVE",        # (6,1) → (6,0) ← GOAL
 ]
 
 
