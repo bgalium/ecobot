@@ -54,13 +54,14 @@ estos derivados.
 
 ## Nivel 2 — Océano (`assets/tiles/ocean/`)
 - **16x16 Puny World Tileset** por Shade (CC0)
-  Seawater tiles para WATER y elevación/roca para ROCK.
+  Seawater tiles para WATER, elevación/roca para ROCK, coral para CORAL.
+  Tile (4,11) → WATER, (10,26) → ROCK, (14,33) → CORAL.
   Fuente: https://opengameart.org/content/16x16-puny-world-tileset
 - **Pixel Art Lake Assets** por AmberFallStudio (CC0)
   Trash flotante (bottle2idle.png) para PLASTIC.
   Fuente: https://opengameart.org/content/pixel-art-lake-assets
 - **Trawler Tileset** (incluido en el pack anterior) — tileset de laguna 16×16.
-- Tile de OIL_SPILL y CORAL: modificaciones propias sobre tiles CC0.
+- Tile de OIL_SPILL: overlay oscuro programático sobre tile de agua.
 
 ## Nivel 3 — Ciudad (`assets/tiles/city/`)
 - **Gallet City** por Adam Saltsman (Dominio Público) — `galletcity_tiles.png`

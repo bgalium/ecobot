@@ -15,6 +15,9 @@ DECORATIONS    = TILESHEET_DIR / "Decorations.png"
 CITY_DIR       = Path("assets") / "tiles" / "city"
 CITY_TILESET   = CITY_DIR / "galletcity_tiles.png"
 
+OCEAN_DIR      = Path("assets") / "tiles" / "ocean"
+PUNY_TILESET   = OCEAN_DIR / "punyworld-overworld-tileset.png"
+
 # ── Parámetros de grilla ───────────────────────────────────────────────────
 TILE_W = 16
 TILE_H = 16
@@ -169,6 +172,7 @@ def init_atlas(tile_size: int) -> None:
     _sheets["main"] = SpriteSheet(TILESET_PADDED)
     _sheets["decorations"] = SpriteSheet(DECORATIONS)
     _sheets["city"] = SpriteSheet(CITY_TILESET)
+    _sheets["ocean"] = SpriteSheet(PUNY_TILESET)
 
     # Cargar rects de decoraciones desde JSON si existe
     json_path = TILESHEET_DIR / "_decoration_rects.json"
@@ -209,6 +213,23 @@ def get_city_tile(row: int, col: int) -> pygame.Surface | None:
             tile = pygame.transform.scale(
                 tile, (CITY_TILE_W * city_scale, CITY_TILE_H * city_scale)
             )
+            _scaled_tiles[key] = tile
+    return _scaled_tiles[key]
+
+
+def get_ocean_tile(col: int, row: int) -> pygame.Surface | None:
+    """Obtiene un tile de 16×16 del spritesheet Puny World, escalado a TILE_SIZE."""
+    key = ("ocean", col, row)
+    if key not in _scaled_tiles:
+        sheet = _sheets["ocean"]
+        tile = sheet.get_tile(col, row, TILE_W, TILE_H, 0)
+        if tile is None:
+            _scaled_tiles[key] = None
+        else:
+            if TILE_SCALE and TILE_SCALE != 1:
+                tile = pygame.transform.scale(
+                    tile, (TILE_W * TILE_SCALE, TILE_H * TILE_SCALE)
+                )
             _scaled_tiles[key] = tile
     return _scaled_tiles[key]
 

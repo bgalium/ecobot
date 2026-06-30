@@ -6,7 +6,7 @@ import pygame
 
 import settings
 from utils.assets import load_image
-from utils.tile_atlas import init_atlas, get_tile, get_city_tile, get_decoration
+from utils.tile_atlas import init_atlas, get_tile, get_ocean_tile, get_city_tile, get_decoration
 
 # Tipos de celda sobre los que el robot puede pararse
 WALKABLE_TILES = {"FLOOR", "GOAL", "WATER", "CITY_FLOOR"}
@@ -21,12 +21,16 @@ TILE_TO_SPRITESHEET: dict[str, tuple[int, int, int]] = {
     "FLOOR":       (1, 1, 1),   # pasto sólido limpio
     "DEAD_TREE":   (6, 9, 1),   # tierra/dirt -> sendero
     "TRASH":       (6, 9, 1),   # mismo tono tierra
-    "WATER":       (1, 12, 1),  # agua sólida
     "SMOG":        (1, 1, 1),
-    "ROCK":        (6, 6, 1),
-    "OIL_SPILL":   (6, 9, 1),
-    "PLASTIC":     (6, 9, 1),
-    "CORAL":       (1, 9, 1),
+}
+
+# (col, row) dentro de punyworld-overworld-tileset.png — 16×16 tiles sin padding.
+OCEAN_TILE_POSITIONS: dict[str, tuple[int, int]] = {
+    "WATER":     (4, 11),  # agua oceánica azul profundo
+    "ROCK":      (10, 26), # roca gris
+    "CORAL":     (14, 33), # coral rojo/naranja
+    "OIL_SPILL": (4, 11), # misma base agua + overlay oscuro
+    "PLASTIC":   (4, 11), # misma base agua + overlay botella
 }
 
 # (row, col) dentro de galletcity_tiles.png — 8×8 tiles sin padding.
@@ -75,19 +79,25 @@ class Level:
         size = (settings.TILE_SIZE, settings.TILE_SIZE)
         self.tile_images: dict[str, pygame.Surface] = {}
         for tile_type in settings.TILE_COLORS:
-            # 0. Ciudad: spritesheet de Gallet City (8×8)
+            # 0. Océano: spritesheet Puny World (16×16 sin padding)
+            ocean_pos = OCEAN_TILE_POSITIONS.get(tile_type)
+            if ocean_pos is not None:
+                col, row = ocean_pos
+                self.tile_images[tile_type] = get_ocean_tile(col, row)
+                continue
+            # 1. Ciudad: spritesheet Gallet City (8×8)
             city_pos = CITY_TILE_POSITIONS.get(tile_type)
             if city_pos is not None:
                 row, col = city_pos
                 self.tile_images[tile_type] = get_city_tile(row, col)
                 continue
-            # 1. Bosque: spritesheet Tileset1xPadding (16×16 con padding)
+            # 2. Bosque: spritesheet Tileset1xPadding (16×16 con padding)
             sheet_pos = TILE_TO_SPRITESHEET.get(tile_type)
             if sheet_pos is not None:
                 col, row, padding = sheet_pos
                 self.tile_images[tile_type] = get_tile(col, row, padding)
                 continue
-            # 2. Fallback a PNG individual
+            # 3. Fallback a PNG individual
             img = load_image(settings.TILES_SPRITES_DIR / f"{tile_type.lower()}.png", size)
             if img is not None:
                 self.tile_images[tile_type] = img
@@ -147,6 +157,12 @@ class Level:
                     dx = origin_x + col * settings.TILE_SIZE + (settings.TILE_SIZE - dw) // 2
                     dy = origin_y + row * settings.TILE_SIZE + settings.TILE_SIZE - dh
                     surface.blit(deco_img, (dx, dy))
+
+                # OIL_SPILL: capa oscura semitransparente (mancha de petróleo)
+                if tile_type == "OIL_SPILL":
+                    oil = pygame.Surface((settings.TILE_SIZE, settings.TILE_SIZE), pygame.SRCALPHA)
+                    oil.fill((15, 10, 8, 180))
+                    surface.blit(oil, rect)
 
                 # SMOG: capa semitransparente grisácea sobre el tile
                 if tile_type == "SMOG":
