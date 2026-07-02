@@ -6,6 +6,7 @@ from core.interpreter import Interpreter
 from core.level import Level
 from core.robot import Robot
 from ui.fail_screen import FailScreen
+from ui.hud import HUD
 from ui.intro_screen import IntroScreen
 from ui.victory_screen import VictoryScreen
 
@@ -72,6 +73,7 @@ class Game:
             (settings.SCREEN_HEIGHT - self.level.rows * settings.TILE_SIZE) // 2,
         )
         self.interpreter = Interpreter(HARDCODED_INSTRUCTIONS)
+        self.hud = HUD()
         self.intro_screen = IntroScreen()
         self.victory_screen = VictoryScreen()
         self.fail_screen = FailScreen()
@@ -287,9 +289,13 @@ class Game:
             self.fail_screen.draw(self.screen,
                                   self.failure_reason or "OBJECTIVES_INCOMPLETE")
         elif self.state == STATE_ACTION_PROMPT:
+            self.hud.draw_running(self.screen, self.level, self.time_remaining_seconds)
             self._draw_hint("Presiona E")
         elif self.state == STATE_PLANNING:
+            self.hud.draw_planning(self.screen, self.level)
             self._draw_hint("Presiona ESPACIO para iniciar")
+        elif self.state == STATE_RUNNING:
+            self.hud.draw_running(self.screen, self.level, self.time_remaining_seconds)
 
         pygame.display.flip()
 
