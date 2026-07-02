@@ -51,3 +51,23 @@ PNGs de **64×64 px** que el juego carga en `core/level.py` y `core/robot.py`
 
 Las licencias de los packs originales (uso libre, modificación permitida) cubren
 estos derivados.
+
+## Nivel 2 — Océano (`assets/tiles/ocean/`)
+- **16x16 Puny World Tileset** por Shade (CC0)
+  Seawater tiles para WATER, elevación/roca para ROCK, coral para CORAL.
+  Tile (4,11) → WATER, (10,26) → ROCK, (14,33) → CORAL.
+  Fuente: https://opengameart.org/content/16x16-puny-world-tileset
+- **Pixel Art Lake Assets** por AmberFallStudio (CC0)
+  Trash flotante (bottle2idle.png) para PLASTIC.
+  Fuente: https://opengameart.org/content/pixel-art-lake-assets
+- **Trawler Tileset** (incluido en el pack anterior) — tileset de laguna 16×16.
+- Tile de OIL_SPILL: overlay oscuro programático sobre tile de agua.
+
+## Nivel 3 — Ciudad (`assets/tiles/city/`)
+- **Gallet City** por Adam Saltsman (Dominio Público) — `galletcity_tiles.png`
+  Tileset de ciudad top-down 8×8 con 166 tiles (calles, veredas, edificios).
+  Tile 32 (vereda) → CITY_FLOOR, Tile 139 (techo) → BUILDING.
+  Fuente: https://adamatomic.itch.io/gallet-city
+- **Fog Animation** por AntumDeluge (CC0) — `fog.png`
+  Capa de niebla/smog tileable con canal alpha para superponer sobre la ciudad.
+  Fuente: https://opengameart.org/content/fog-animation
