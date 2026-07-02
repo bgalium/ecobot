@@ -7,6 +7,7 @@ from core.level import Level
 from core.robot import Robot
 from ui.fail_screen import FailScreen
 from ui.intro_screen import IntroScreen
+from ui.route_panel import RoutePanel
 from ui.victory_screen import VictoryScreen
 
 # ── Estados del juego ────────────────────────────────────────────────────────
@@ -17,30 +18,6 @@ STATE_ACTION_PROMPT = "ACTION_PROMPT"  # Pausa la ejecución junto a un objetivo
                                        # espera la tecla E (QTE, #43)
 STATE_VICTORY       = "VICTORY"        # Robot en GOAL y todos los objetivos cumplidos
 STATE_FAILURE       = "FAILURE"        # Robot chocó o cayó
-
-# ── Secuencia hardcodeada para level_1.json (Bosque Amazónico 7×5) ───────────
-# Robot en (0,4) mirando RIGHT · DEAD_TREE en (2,2) y (4,2) · GOAL en (6,0).
-# Solución óptima en 17 instrucciones (ratio 0.68 → 3 estrellas con max_slots=25).
-# El panel de ruta (#16) la reemplazará por la secuencia que arme el jugador.
-HARDCODED_INSTRUCTIONS: list[str] = [
-    "MOVE",        # (0,4) → (1,4)
-    "MOVE",        # (1,4) → (2,4)
-    "TURN_LEFT",   # RIGHT → UP
-    "MOVE",        # (2,4) → (2,3)
-    "ACTION",      # planta DEAD_TREE en (2,2) → TREE
-    "TURN_RIGHT",  # UP → RIGHT
-    "MOVE",        # (2,3) → (3,3)
-    "MOVE",        # (3,3) → (4,3)
-    "TURN_LEFT",   # RIGHT → UP
-    "ACTION",      # planta DEAD_TREE en (4,2) → TREE
-    "TURN_RIGHT",  # UP → RIGHT
-    "MOVE",        # (4,3) → (5,3)
-    "MOVE",        # (5,3) → (6,3)
-    "TURN_LEFT",   # RIGHT → UP
-    "MOVE",        # (6,3) → (6,2)
-    "MOVE",        # (6,2) → (6,1)
-    "MOVE",        # (6,1) → (6,0) ← GOAL
-]
 
 
 class Game:
@@ -71,7 +48,9 @@ class Game:
             (settings.SCREEN_WIDTH  - self.level.cols * settings.TILE_SIZE) // 2,
             (settings.SCREEN_HEIGHT - self.level.rows * settings.TILE_SIZE) // 2,
         )
-        self.interpreter = Interpreter(HARDCODED_INSTRUCTIONS)
+        #self.interpreter = Interpreter(HARDCODED_INSTRUCTIONS)
+        self.interpreter = Interpreter([])
+        self.route_panel = RoutePanel(self.level.max_slots)
         self.intro_screen = IntroScreen()
         self.victory_screen = VictoryScreen()
         self.fail_screen = FailScreen()
@@ -127,11 +106,19 @@ class Game:
     def _handle_planning_key(self, event: pygame.event.Event) -> None:
         """El jugador arma la ruta; ESPACIO la ejecuta."""
         if event.key == pygame.K_SPACE:
+            if not self.route_panel.steps:
+                return
+            instructions = self.route_panel.to_instructions(
+                self.level.robot_start_direction
+            )
+            self.interpreter = Interpreter(instructions)
             self.interpreter.start()
             self.state = STATE_RUNNING
-        elif event.key in (pygame.K_UP, pygame.K_DOWN,
-                           pygame.K_LEFT, pygame.K_RIGHT):
+        elif event.key in (pygame.K_UP, pygame.K_DOWN, pygame.K_LEFT, pygame.K_RIGHT,
+                           pygame.K_e, pygame.K_q, pygame.K_w):
             self._add_route_step(event.key)
+        elif event.key == pygame.K_BACKSPACE:
+            self.route_panel.remove_last()
 
     def _handle_running_key(self, event: pygame.event.Event) -> None:
         """Durante la ejecución no se acepta input de ruta (stub).
@@ -160,11 +147,8 @@ class Game:
     # ------------------------------------------------------------------
 
     def _add_route_step(self, key: int) -> None:
-        """Registra un paso de ruta desde una tecla de flecha.
-
-        El panel de ruta (#16) implementará aquí la construcción real de la
-        secuencia. Por ahora es un stub que sólo recibe la pulsación.
-        """
+        """Registra un paso de ruta desde una tecla de flecha."""
+        self.route_panel.add_step(key)
 
     def _should_trigger_action_prompt(self) -> bool:
         """Indica si el robot quedó junto a un objetivo y debe abrirse el QTE.
@@ -270,8 +254,11 @@ class Game:
                                   self.failure_reason or "OBJECTIVES_INCOMPLETE")
         elif self.state == STATE_ACTION_PROMPT:
             self._draw_hint("Presiona E")
+            self.route_panel.draw(self.screen, interactive=False)
         elif self.state == STATE_PLANNING:
-            self._draw_hint("Presiona ESPACIO para iniciar")
+            self.route_panel.draw(self.screen, interactive=True)
+        elif self.state == STATE_RUNNING:
+            self.route_panel.draw(self.screen, interactive=False)
 
         pygame.display.flip()
 

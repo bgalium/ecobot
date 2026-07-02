@@ -33,8 +33,8 @@ TILE_TO_SPRITESHEET: dict[str, tuple[int, int, int]] = {
 
 # Decoraciones (Decorations.png) como overlay sobre el tile base
 TILE_TO_DECORATION: dict[str, str] = {
-    "WALL":      "sprite_10",  # arbusto/roca compacta
-    "TREE":      "sprite_16",  # arbusto verde mediano
+    "WALL":      "sprite_23",  # roca compacta
+    "TREE":      "sprite_28",  # árbol mediano plantado
     "DEAD_TREE": "sprite_1",   # tronco caído sobre tierra
     "GOAL":      "sprite_12",  # planta alta (marcador)
 }
