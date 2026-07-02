@@ -78,6 +78,7 @@ def test_desde_planning_espacio_inicia_la_ejecucion(game):
     """En PLANNING, ESPACIO arranca el intérprete y pasa a RUNNING."""
     from core.game import STATE_PLANNING, STATE_RUNNING
     game.state = STATE_PLANNING
+    game.route_panel.steps = ["RIGHT"]  # al menos un paso para que ESPACIO lo lance
     pygame.event.post(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_SPACE))
     game.handle_events()
     assert game.state == STATE_RUNNING
@@ -241,14 +242,24 @@ def test_espacio_reinicia_desde_victoria_y_derrota(game):
         assert game.state == STATE_INTRO
 
 
+# Secuencia óptima para level_1 (7×5): planta (2,2) y (4,2), llega a GOAL (6,0).
+# Genera 17 instrucciones → ratio 17/25 = 0.68 → 3 estrellas.
+_WINNING_STEPS = [
+    "RIGHT", "RIGHT",                          # avanza a (2,4)
+    "UP", "ACTION",                            # gira UP, mueve a (2,3), planta (2,2)
+    "RIGHT", "RIGHT",                          # avanza a (4,3)
+    "TURN_LEFT", "ACTION", "TURN_RIGHT",       # gira UP en (4,3), planta (4,2), vuelve a RIGHT
+    "RIGHT", "RIGHT",                          # avanza a (6,3)
+    "UP", "UP", "UP",                          # sube a GOAL (6,0)
+]
+
+
 def _ejecutar_hasta_terminar(game, max_frames=2000):
     """Presiona ESPACIO para pasar INTRO y PLANNING, y simula frames hasta terminar."""
     from core.game import STATE_INTRO, STATE_RUNNING
-    # Salir del estado INTRO si estamos allí
     if game.state == STATE_INTRO:
         pygame.event.post(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_SPACE))
         game.handle_events()
-    # Iniciar el nivel
     pygame.event.post(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_SPACE))
     game.handle_events()
     for _ in range(max_frames):
@@ -258,9 +269,10 @@ def _ejecutar_hasta_terminar(game, max_frames=2000):
     return game.state
 
 
-def test_la_secuencia_hardcodeada_gana_el_nivel_real(game):
+def test_la_secuencia_optima_gana_el_nivel_real(game):
     """Integración con el level_1.json real: debe plantar todo y llegar a la meta."""
     from core.game import STATE_VICTORY
+    game.route_panel.steps = list(_WINNING_STEPS)
     estado = _ejecutar_hasta_terminar(game)
     assert estado == STATE_VICTORY
     assert game.level.get_cell(game.robot.col, game.robot.row) == "GOAL"
@@ -268,6 +280,7 @@ def test_la_secuencia_hardcodeada_gana_el_nivel_real(game):
 
 def test_los_objetivos_se_cumplen_de_verdad(game):
     """Tras ganar, las celdas de los objetivos deben haber cambiado a TREE/FLOOR."""
+    game.route_panel.steps = list(_WINNING_STEPS)
     _ejecutar_hasta_terminar(game)
     for obj in game.level.objectives:
         celda = game.level.get_cell(obj["col"], obj["row"])
@@ -278,16 +291,23 @@ def test_los_objetivos_se_cumplen_de_verdad(game):
 
 
 def test_no_se_gana_ignorando_los_objetivos(game):
-    """Ir directo a la meta sin plantar debe ser derrota, no victoria."""
-    from core.game import STATE_FAILURE
+    """Ir a la meta sin plantar los árboles es derrota, no victoria."""
+    from core.game import STATE_FAILURE, STATE_RUNNING
     from core.interpreter import Interpreter
-    game.interpreter = Interpreter(["MOVE", "MOVE", "MOVE", "MOVE"])  # directo al GOAL
-    estado = _ejecutar_hasta_terminar(game)
-    assert estado == STATE_FAILURE
+    # Ruta directa al GOAL (6,0) sin plantar: RIGHT×6, TURN_LEFT, UP×4
+    game.state = STATE_RUNNING
+    game.interpreter = Interpreter(["MOVE"] * 6 + ["TURN_LEFT"] + ["MOVE"] * 4)
+    game.interpreter.start()
+    for _ in range(2000):
+        game.update()
+        if game.state != STATE_RUNNING:
+            break
+    assert game.state == STATE_FAILURE
 
 
 def test_al_ganar_el_robot_termino_su_animacion(game):
     """La victoria se evalúa con el robot quieto y centrado en su celda."""
+    game.route_panel.steps = list(_WINNING_STEPS)
     _ejecutar_hasta_terminar(game)
     assert game.robot.moving is False
     assert game.robot.pixel_x == game.robot.target_x

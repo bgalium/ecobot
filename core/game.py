@@ -20,30 +20,6 @@ STATE_VICTORY       = "VICTORY"        # Robot en GOAL y todos los objetivos cum
 STATE_FAILURE       = "FAILURE"        # Robot chocó o cayó
 
 
-# # ── Secuencia hardcodeada para level_1.json (Bosque Amazónico 7×5) ───────────
-# # Robot en (0,4) mirando RIGHT · DEAD_TREE en (2,2) y (4,2) · GOAL en (6,0).
-# # Solución óptima en 17 instrucciones (ratio 0.68 → 3 estrellas con max_slots=25).
-# # El panel de ruta (#16) la reemplazará por la secuencia que arme el jugador.
-# HARDCODED_INSTRUCTIONS: list[str] = [
-#     "MOVE",        # (0,4) → (1,4)
-#     "MOVE",        # (1,4) → (2,4)
-#     "TURN_LEFT",   # RIGHT → UP
-#     "MOVE",        # (2,4) → (2,3)
-#     "ACTION",      # planta DEAD_TREE en (2,2) → TREE
-#     "TURN_RIGHT",  # UP → RIGHT
-#     "MOVE",        # (2,3) → (3,3)
-#     "MOVE",        # (3,3) → (4,3)
-#     "TURN_LEFT",   # RIGHT → UP
-#     "ACTION",      # planta DEAD_TREE en (4,2) → TREE
-#     "TURN_RIGHT",  # UP → RIGHT
-#     "MOVE",        # (4,3) → (5,3)
-#     "MOVE",        # (5,3) → (6,3)
-#     "TURN_LEFT",   # RIGHT → UP
-#     "MOVE",        # (6,3) → (6,2)
-#     "MOVE",        # (6,2) → (6,1)
-#     "MOVE",        # (6,1) → (6,0) ← GOAL
-# ]
-
 class Game:
     """Orquesta el nivel y el robot dentro del bucle principal."""
 
@@ -138,8 +114,8 @@ class Game:
             self.interpreter = Interpreter(instructions)
             self.interpreter.start()
             self.state = STATE_RUNNING
-        elif event.key in (pygame.K_UP, pygame.K_DOWN,
-                           pygame.K_LEFT, pygame.K_RIGHT):
+        elif event.key in (pygame.K_UP, pygame.K_DOWN, pygame.K_LEFT, pygame.K_RIGHT,
+                           pygame.K_e, pygame.K_q, pygame.K_w):
             self._add_route_step(event.key)
         elif event.key == pygame.K_BACKSPACE:
             self.route_panel.remove_last()
