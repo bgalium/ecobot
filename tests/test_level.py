@@ -66,6 +66,27 @@ def test_load_lee_time_limit_si_existe(tmp_path):
     assert Level(path).time_limit == 30
 
 
+def test_load_action_window_ausente_es_default(level_file):
+    """Sin action_window en el JSON, el nivel usa el default de 2.0 s."""
+    level = Level(level_file)
+    assert level.action_window == 2.0
+
+
+def test_load_lee_action_window_si_existe(tmp_path):
+    """Con action_window en el JSON, Level lo expone en segundos."""
+    data = {
+        "name": "n", "environmental_fact": "f", "max_slots": 5,
+        "available_instructions": ["MOVE"],
+        "robot_start": {"col": 0, "row": 0, "direction": "RIGHT"},
+        "grid": [["FLOOR", "GOAL"]],
+        "objectives": [],
+        "action_window": 1.5,
+    }
+    path = tmp_path / "con_ventana.json"
+    path.write_text(json.dumps(data), encoding="utf-8")
+    assert Level(path).action_window == 1.5
+
+
 def test_load_calcula_dimensiones_de_la_grilla(level_file):
     level = Level(level_file)
     assert level.cols == 3

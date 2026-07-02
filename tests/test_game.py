@@ -204,6 +204,7 @@ def test_en_action_prompt_el_interprete_no_avanza(game):
     from core.game import STATE_ACTION_PROMPT
     game.interpreter.start()
     game.state = STATE_ACTION_PROMPT
+    game.action_frames_remaining = 1000  # ventana amplia: el prompt sigue abierto
     indice_antes = game.interpreter._index
     for _ in range(10):
         game.update()
@@ -242,8 +243,9 @@ def test_espacio_reinicia_desde_victoria_y_derrota(game):
 
 
 def _ejecutar_hasta_terminar(game, max_frames=2000):
-    """Presiona ESPACIO para pasar INTRO y PLANNING, y simula frames hasta terminar."""
-    from core.game import STATE_INTRO, STATE_RUNNING
+    """Pasa INTRO/PLANNING, simula frames y resuelve cada QTE con E hasta terminar."""
+    from core.game import (STATE_ACTION_PROMPT, STATE_INTRO, STATE_RUNNING,
+                           STATE_VICTORY, STATE_FAILURE)
     # Salir del estado INTRO si estamos allí
     if game.state == STATE_INTRO:
         pygame.event.post(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_SPACE))
@@ -252,8 +254,12 @@ def _ejecutar_hasta_terminar(game, max_frames=2000):
     pygame.event.post(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_SPACE))
     game.handle_events()
     for _ in range(max_frames):
+        # Plantar/limpiar ocurre vía QTE (#43): responder cada ventana con E.
+        if game.state == STATE_ACTION_PROMPT:
+            pygame.event.post(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_e))
+            game.handle_events()
         game.update()
-        if game.state != STATE_RUNNING:
+        if game.state in (STATE_VICTORY, STATE_FAILURE):
             break
     return game.state
 
@@ -294,6 +300,115 @@ def test_al_ganar_el_robot_termino_su_animacion(game):
     assert game.robot.pixel_y == game.robot.target_y
 
 
+# ── Ventana de acción / QTE (#43) ────────────────────────────────────────────
+
+def _mirar_arbol(game):
+    """Coloca al robot en (2,3) mirando UP → de frente el DEAD_TREE objetivo (2,2)."""
+    game.robot.col, game.robot.row, game.robot.direction = 2, 3, "UP"
+    game.robot.moving = False
+
+
+def test_trigger_true_mirando_objetivo_activo(game):
+    """_should_trigger es True cuando el robot mira una celda-objetivo incompleta."""
+    _mirar_arbol(game)
+    assert game._should_trigger_action_prompt() is True
+
+
+def test_trigger_false_mirando_celda_sin_objetivo(game):
+    """Mirando piso (no hay objetivo de frente) no se dispara el prompt."""
+    game.robot.col, game.robot.row, game.robot.direction = 2, 3, "DOWN"  # frente (2,4) FLOOR
+    assert game._should_trigger_action_prompt() is False
+
+
+def test_trigger_false_si_el_objetivo_ya_esta_cumplido(game):
+    """Si el DEAD_TREE ya es TREE, el objetivo está cumplido → no se dispara."""
+    game.level.set_cell(2, 2, "TREE")
+    _mirar_arbol(game)
+    assert game._should_trigger_action_prompt() is False
+
+
+def test_abrir_el_prompt_inicializa_la_ventana(game, monkeypatch):
+    """Al entrar a ACTION_PROMPT, la ventana arranca en action_window * FPS frames."""
+    from core.game import STATE_RUNNING
+    game.interpreter.start()
+    game.state = STATE_RUNNING
+    game.robot.moving = False
+    monkeypatch.setattr(game, "_should_trigger_action_prompt", lambda: True)
+    game.update()
+    assert game.action_frames_remaining == int(game.level.action_window * settings.FPS)
+
+
+def test_la_ventana_se_consume_en_action_prompt(game):
+    """Cada frame en ACTION_PROMPT decrementa la ventana."""
+    from core.game import STATE_ACTION_PROMPT
+    game.state = STATE_ACTION_PROMPT
+    game.action_frames_remaining = 10
+    game.update()
+    assert game.action_frames_remaining == 9
+
+
+def test_ventana_agotada_reanuda_sin_ejecutar_la_accion(game):
+    """Si la ventana llega a 0 sin pulsar E → RUNNING y el objetivo NO se ejecuta."""
+    from core.game import STATE_ACTION_PROMPT, STATE_RUNNING
+    game.interpreter.start()
+    _mirar_arbol(game)
+    game.state = STATE_ACTION_PROMPT
+    game.action_frames_remaining = 1
+    game.update()
+    assert game.state == STATE_RUNNING
+    assert game.level.get_cell(2, 2) == "DEAD_TREE"  # objetivo perdido, no plantado
+    # No reabre el prompt en la misma pose (quedó marcada como resuelta).
+    game.robot.moving = False
+    game.update()
+    assert game.state != STATE_ACTION_PROMPT
+
+
+def test_pulsar_e_ejecuta_la_accion_y_cambia_el_tile(game):
+    """En ACTION_PROMPT, E ejecuta robot.action(): DEAD_TREE → TREE y vuelve a RUNNING."""
+    from core.game import STATE_ACTION_PROMPT, STATE_RUNNING
+    game.interpreter.start()
+    _mirar_arbol(game)
+    game.state = STATE_ACTION_PROMPT
+    pygame.event.post(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_e))
+    game.handle_events()
+    assert game.state == STATE_RUNNING
+    assert game.level.get_cell(2, 2) == "TREE"
+
+
+def _correr_nivel(game, pulsar_e, max_iter=6000):
+    """Ejecuta el bucle update() hasta VICTORY/FAILURE.
+
+    pulsar_e=True → responde cada ACTION_PROMPT con la tecla E.
+    """
+    from core.game import STATE_ACTION_PROMPT, STATE_VICTORY, STATE_FAILURE
+    game.interpreter.start()
+    game.state = "RUNNING"
+    for _ in range(max_iter):
+        if game.state == STATE_ACTION_PROMPT and pulsar_e:
+            pygame.event.post(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_e))
+            game.handle_events()
+        game.update()
+        if game.state in (STATE_VICTORY, STATE_FAILURE):
+            return game.state
+    return game.state
+
+
+def test_nivel_completo_con_qte_es_victoria(game):
+    """Plantando ambos árboles vía QTE (E) y llegando al GOAL → VICTORY."""
+    from core.game import STATE_VICTORY
+    assert _correr_nivel(game, pulsar_e=True) == STATE_VICTORY
+    assert game.level.get_cell(2, 2) == "TREE"
+    assert game.level.get_cell(4, 2) == "TREE"
+
+
+def test_nivel_sin_pulsar_e_pierde_los_objetivos(game):
+    """Sin pulsar E las ventanas se agotan; sin árboles plantados → FAILURE."""
+    from core.game import STATE_FAILURE
+    game._timer_enabled = False  # aislar: la derrota debe ser por objetivos, no por tiempo
+    assert _correr_nivel(game, pulsar_e=False) == STATE_FAILURE
+    assert game.failure_reason == "OBJECTIVES_INCOMPLETE"
+
+
 # ── Temporizador por nivel (#42) ─────────────────────────────────────────────
 
 def test_timer_se_inicializa_desde_el_time_limit_del_nivel(game):
@@ -311,6 +426,7 @@ def test_timer_decrementa_solo_en_running(game):
         game.update()
     assert game.time_remaining_frames == antes  # PLANNING no consume tiempo
     game.state = STATE_ACTION_PROMPT
+    game.action_frames_remaining = 1000  # ventana amplia: el prompt sigue abierto
     for _ in range(10):
         game.update()
     assert game.time_remaining_frames == antes  # ACTION_PROMPT tampoco

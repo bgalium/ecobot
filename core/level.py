@@ -63,6 +63,8 @@ class Level:
         self.max_slots: int = data["max_slots"]
         # Tiempo límite en segundos (#42). 0 o ausente = temporizador desactivado.
         self.time_limit: int = data.get("time_limit", 0)
+        # Duración en segundos de la ventana de acción / QTE (#43). Ausente = 2.0.
+        self.action_window: float = data.get("action_window", 2.0)
         self.available_instructions: list[str] = data["available_instructions"]
         self.objectives: list[dict] = data["objectives"]
         self.grid: list[list[str]] = data["grid"]
