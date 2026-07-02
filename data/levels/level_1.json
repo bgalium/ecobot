@@ -3,6 +3,7 @@
   "environmental_fact": "La Amazonía pierde un área equivalente a un campo de fútbol cada minuto.",
   "max_slots": 25,
   "time_limit": 45,
+  "action_window": 2.0,
   "available_instructions": ["MOVE", "TURN_LEFT", "TURN_RIGHT", "ACTION"],
   "robot_start": { "col": 0, "row": 4, "direction": "RIGHT" },
   "objectives": [

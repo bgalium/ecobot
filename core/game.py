@@ -20,19 +20,18 @@ STATE_FAILURE       = "FAILURE"        # Robot chocó o cayó
 
 # ── Secuencia hardcodeada para level_1.json (Bosque Amazónico 7×5) ───────────
 # Robot en (0,4) mirando RIGHT · DEAD_TREE en (2,2) y (4,2) · GOAL en (6,0).
-# Solución óptima en 17 instrucciones (ratio 0.68 → 3 estrellas con max_slots=25).
-# El panel de ruta (#16) la reemplazará por la secuencia que arme el jugador.
+# Solo MOVE/TURN: la secuencia deja al robot MIRANDO cada DEAD_TREE, y plantar
+# ocurre en la ventana de acción (QTE, #43) al pulsar E. El panel de ruta (#16)
+# la reemplazará por la secuencia que arme el jugador.
 HARDCODED_INSTRUCTIONS: list[str] = [
     "MOVE",        # (0,4) → (1,4)
     "MOVE",        # (1,4) → (2,4)
-    "TURN_LEFT",   # RIGHT → UP
+    "TURN_LEFT",   # RIGHT → UP · mira DEAD_TREE (2,2) tras el MOVE siguiente → QTE
     "MOVE",        # (2,4) → (2,3)
-    "ACTION",      # planta DEAD_TREE en (2,2) → TREE
     "TURN_RIGHT",  # UP → RIGHT
     "MOVE",        # (2,3) → (3,3)
     "MOVE",        # (3,3) → (4,3)
-    "TURN_LEFT",   # RIGHT → UP
-    "ACTION",      # planta DEAD_TREE en (4,2) → TREE
+    "TURN_LEFT",   # RIGHT → UP · mira DEAD_TREE (4,2) → QTE
     "TURN_RIGHT",  # UP → RIGHT
     "MOVE",        # (4,3) → (5,3)
     "MOVE",        # (5,3) → (6,3)
@@ -80,6 +79,9 @@ class Game:
         # RUNNING. time_limit 0 = sin límite. El HUD (#17) lee time_remaining_seconds.
         self._timer_enabled: bool = self.level.time_limit > 0
         self.time_remaining_frames: int = self.level.time_limit * settings.FPS
+        # Frames restantes de la ventana de acción / QTE (#43). Se arma al abrir
+        # STATE_ACTION_PROMPT y se consume cada frame; 0 fuera del prompt.
+        self.action_frames_remaining: int = 0
         # Pose (col, row, dirección) donde se resolvió la última ventana de
         # acción: evita reabrirla en la misma pose, pero permite un nuevo prompt
         # si el robot gira hacia otro objetivo sin cambiar de celda (ver
@@ -175,21 +177,47 @@ class Game:
         secuencia. Por ahora es un stub que sólo recibe la pulsación.
         """
 
-    def _should_trigger_action_prompt(self) -> bool:
-        """Indica si el robot quedó junto a un objetivo y debe abrirse el QTE.
+    def _front_cell(self) -> tuple[int, int]:
+        """Celda (col, row) que el robot tiene de frente según su dirección."""
+        dx, dy = settings.DIRECTIONS[self.robot.direction]
+        return self.robot.col + dx, self.robot.row + dy
 
-        La detección real (robot adyacente a un objetivo activo) la implementa
-        la ventana de acción (#43). De momento nunca se dispara.
+    def _objective_done(self, obj: dict) -> bool:
+        """Indica si un objetivo del nivel ya está cumplido según el grid.
+
+        Un tipo desconocido devuelve False (aún no implementado): preferimos un
+        nivel que no se pueda ganar todavía a darlo por cumplido en silencio. El
+        efecto real de la acción lo decide robot.action(); al añadir tipos nuevos
+        (p.ej. limpieza de OIL_SPILL) hay que alinear ambos lados.
         """
+        col, row = obj["col"], obj["row"]
+        obj_type = obj.get("type")
+        if obj_type == "PLANT_TREE":
+            return self.level.grid[row][col] == "TREE"
+        if obj_type == "COLLECT_TRASH":
+            return self.level.grid[row][col] == "FLOOR"
+        return False
+
+    def _should_trigger_action_prompt(self) -> bool:
+        """True si el robot mira una celda con un objetivo activo (aún sin cumplir).
+
+        La acción del robot opera sobre la celda de enfrente (#43), así que el
+        QTE se abre exactamente cuando esa celda es un objetivo pendiente.
+        """
+        front = self._front_cell()
+        for obj in self.level.objectives:
+            if (obj["col"], obj["row"]) == front and not self._objective_done(obj):
+                return True
         return False
 
     def _resolve_action_prompt(self) -> None:
-        """Cierra la ventana de acción y reanuda la ejecución.
+        """Resuelve el QTE con éxito: ejecuta la acción y reanuda la ejecución.
 
-        El resultado del QTE (acierto/fallo) lo definirá #43; aquí sólo se
-        reanuda RUNNING y se marca la pose actual como ya resuelta, para que
-        update() no reabra el prompt mientras el robot no avance ni gire.
+        Ejecuta robot.action() (planta/recoge/limpia la celda de enfrente) y
+        marca la pose actual como resuelta para que update() no reabra el prompt
+        mientras el robot no avance ni gire hacia otro objetivo.
         """
+        self.robot.action(self.level)
         self._last_prompt_state = (self.robot.col, self.robot.row, self.robot.direction)
         self.state = STATE_RUNNING
 
@@ -197,8 +225,15 @@ class Game:
         # Animar siempre: la animación idle también corre fuera de RUNNING
         self.robot.update()
 
-        # ACTION_PROMPT pausa la ejecución hasta que el jugador pulse E.
+        # ACTION_PROMPT pausa la ejecución y corre la ventana del QTE (#43): si se
+        # agota sin pulsar E, el objetivo se pierde y el robot retoma la ruta.
         if self.state == STATE_ACTION_PROMPT:
+            self.action_frames_remaining -= 1
+            if self.action_frames_remaining <= 0:
+                self._last_prompt_state = (
+                    self.robot.col, self.robot.row, self.robot.direction,
+                )
+                self.state = STATE_RUNNING
             return
 
         if self.state != STATE_RUNNING:
@@ -224,6 +259,7 @@ class Game:
         # sí tras girar (otra dirección = otro objetivo de frente) o avanzar.
         pose = (self.robot.col, self.robot.row, self.robot.direction)
         if pose != self._last_prompt_state and self._should_trigger_action_prompt():
+            self.action_frames_remaining = int(self.level.action_window * settings.FPS)
             self.state = STATE_ACTION_PROMPT
             return
 
@@ -257,18 +293,7 @@ class Game:
         Tipo "PLANT_TREE"  → verifica grid[row][col] == "TREE".
         Tipo "COLLECT_TRASH" → verifica grid[row][col] == "FLOOR".
         """
-        if not self.level.objectives:
-            return True
-
-        for obj in self.level.objectives:
-            obj_type = obj.get("type")
-            col, row = obj["col"], obj["row"]
-            if obj_type == "PLANT_TREE" and self.level.grid[row][col] != "TREE":
-                return False
-            if obj_type == "COLLECT_TRASH" and self.level.grid[row][col] != "FLOOR":
-                return False
-
-        return True
+        return all(self._objective_done(obj) for obj in self.level.objectives)
 
     def draw(self) -> None:
         self.screen.fill(settings.COLOR_BG)
@@ -287,7 +312,7 @@ class Game:
             self.fail_screen.draw(self.screen,
                                   self.failure_reason or "OBJECTIVES_INCOMPLETE")
         elif self.state == STATE_ACTION_PROMPT:
-            self._draw_hint("Presiona E")
+            self._draw_action_prompt()
         elif self.state == STATE_PLANNING:
             self._draw_hint("Presiona ESPACIO para iniciar")
 
@@ -305,6 +330,17 @@ class Game:
 
         sub_surf = self._font_small.render(sub_text, True, (220, 220, 220))
         self.screen.blit(sub_surf, sub_surf.get_rect(center=(w // 2, h // 2 + 40)))
+
+    def _draw_action_prompt(self) -> None:
+        """Indicador del QTE (#43): tecla E + barra de tiempo que se consume."""
+        self._draw_hint("Presiona E")
+        total = max(1, int(self.level.action_window * settings.FPS))
+        frac = max(0.0, min(1.0, self.action_frames_remaining / total))
+        w, h = self.screen.get_size()
+        bar_w, bar_h = 240, 12
+        x, y = (w - bar_w) // 2, h - 60
+        pygame.draw.rect(self.screen, (60, 60, 60), (x, y, bar_w, bar_h))
+        pygame.draw.rect(self.screen, (90, 200, 90), (x, y, int(bar_w * frac), bar_h))
 
     def _draw_hint(self, text: str) -> None:
         w, h = self.screen.get_size()
