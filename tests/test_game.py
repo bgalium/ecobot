@@ -375,6 +375,27 @@ def test_pulsar_e_ejecuta_la_accion_y_cambia_el_tile(game):
     assert game.level.get_cell(2, 2) == "TREE"
 
 
+def test_objetivo_de_tipo_desconocido_no_se_considera_cumplido(game):
+    """Un tipo de objetivo no implementado NO debe darse por cumplido en silencio."""
+    assert game._objective_done({"type": "CLEAN_SPILL", "col": 0, "row": 0}) is False
+
+
+def test_trigger_y_resolucion_para_objetivo_collect_trash(game):
+    """El QTE también cubre COLLECT_TRASH: mirar TRASH abre el prompt y E → FLOOR."""
+    from core.game import STATE_ACTION_PROMPT, STATE_RUNNING
+    game.level.set_cell(2, 3, "TRASH")
+    game.level.objectives = [{"type": "COLLECT_TRASH", "col": 2, "row": 3}]
+    game.robot.col, game.robot.row, game.robot.direction = 1, 3, "RIGHT"  # frente (2,3)
+    game.robot.moving = False
+    assert game._should_trigger_action_prompt() is True
+    game.interpreter.start()
+    game.state = STATE_ACTION_PROMPT
+    pygame.event.post(pygame.event.Event(pygame.KEYDOWN, key=pygame.K_e))
+    game.handle_events()
+    assert game.state == STATE_RUNNING
+    assert game.level.get_cell(2, 3) == "FLOOR"
+
+
 def _correr_nivel(game, pulsar_e, max_iter=6000):
     """Ejecuta el bucle update() hasta VICTORY/FAILURE.
 

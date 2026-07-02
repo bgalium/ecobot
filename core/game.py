@@ -183,14 +183,20 @@ class Game:
         return self.robot.col + dx, self.robot.row + dy
 
     def _objective_done(self, obj: dict) -> bool:
-        """Indica si un objetivo del nivel ya está cumplido según el grid."""
+        """Indica si un objetivo del nivel ya está cumplido según el grid.
+
+        Un tipo desconocido devuelve False (aún no implementado): preferimos un
+        nivel que no se pueda ganar todavía a darlo por cumplido en silencio. El
+        efecto real de la acción lo decide robot.action(); al añadir tipos nuevos
+        (p.ej. limpieza de OIL_SPILL) hay que alinear ambos lados.
+        """
         col, row = obj["col"], obj["row"]
         obj_type = obj.get("type")
         if obj_type == "PLANT_TREE":
             return self.level.grid[row][col] == "TREE"
         if obj_type == "COLLECT_TRASH":
             return self.level.grid[row][col] == "FLOOR"
-        return True
+        return False
 
     def _should_trigger_action_prompt(self) -> bool:
         """True si el robot mira una celda con un objetivo activo (aún sin cumplir).

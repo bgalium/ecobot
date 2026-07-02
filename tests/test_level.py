@@ -87,6 +87,22 @@ def test_load_lee_action_window_si_existe(tmp_path):
     assert Level(path).action_window == 1.5
 
 
+def test_load_action_window_no_positivo_se_clampa(tmp_path):
+    """action_window <= 0 se clampa a un mínimo jugable (evita QTE que cierra al instante)."""
+    for valor in (0, -5):
+        data = {
+            "name": "n", "environmental_fact": "f", "max_slots": 5,
+            "available_instructions": ["MOVE"],
+            "robot_start": {"col": 0, "row": 0, "direction": "RIGHT"},
+            "grid": [["FLOOR", "GOAL"]],
+            "objectives": [],
+            "action_window": valor,
+        }
+        path = tmp_path / f"aw_{valor}.json"
+        path.write_text(json.dumps(data), encoding="utf-8")
+        assert Level(path).action_window >= 0.1
+
+
 def test_load_calcula_dimensiones_de_la_grilla(level_file):
     level = Level(level_file)
     assert level.cols == 3
